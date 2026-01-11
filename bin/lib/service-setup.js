@@ -169,6 +169,18 @@ export const setupService = async (
     if (fs.existsSync(envPath)) {
       let envContent = fs.readFileSync(envPath, "utf8");
       
+      // Import ENV in app.ts if CORS is selected
+      if (res.features && res.features.includes("cors")) {
+        let appContent = fs.readFileSync(appPath, "utf8");
+        if (!appContent.includes("import { ENV } from")) {
+          appContent = appContent.replace(
+            "/*__IMPORTS__*/",
+            "import { ENV } from '@/config';\n/*__IMPORTS__*/"
+          );
+          fs.writeFileSync(appPath, appContent);
+        }
+      }
+      
       // Add ALLOWED_ORIGIN if CORS is selected
       if (res.features && res.features.includes("cors")) {
         envContent = envContent.replace(

@@ -1,6 +1,5 @@
 import express from "express";
 /*__IMPORTS__*/
-/*__ENV_CORS__*/
 
 const app = express();
 
