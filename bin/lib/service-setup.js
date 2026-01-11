@@ -259,7 +259,14 @@ await connectDB();`
   // Update tsconfig.json for microservices to support @/ alias with shared folder
   if (res.projectType === "microservice") {
     const tsconfigPath = path.join(serviceRoot, "tsconfig.json");
-    const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, "utf8"));
+    let tsconfigContent = fs.readFileSync(tsconfigPath, "utf8");
+    
+    // Remove comments from JSON (simple approach for tsconfig)
+    tsconfigContent = tsconfigContent
+      .replace(/\\\/\\\/.*$/gm, '') // Remove single-line comments
+      .replace(/\\\/\\*[\\s\\S]*?\\*\\\//g, ''); // Remove multi-line comments
+    
+    const tsconfig = JSON.parse(tsconfigContent);
 
     // Update paths to include shared folder
     tsconfig.compilerOptions.paths = {
