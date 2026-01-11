@@ -31,6 +31,7 @@ jobs:
       run: npm run lint --if-present
 
     - name: Test CLI generation (Monolith)
+      shell: bash
       run: |
         node bin/cli.js test-mono mono << EOF
         cors
@@ -47,6 +48,7 @@ jobs:
         npm run build
 
     - name: Test CLI generation (Microservice)
+      shell: bash
       run: |
         node bin/cli.js test-micro micro << EOF
         docker
