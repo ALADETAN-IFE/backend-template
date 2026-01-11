@@ -65,6 +65,7 @@ jobs:
         test -f test-micro/docker-compose.yml
 
     - name: Cleanup test projects
+      shell: bash
       run: |
         rm -rf test-mono test-micro
       if: always()
