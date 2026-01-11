@@ -118,13 +118,6 @@ export const setupService = async (
     const appPath = path.join(serviceRoot, "src/app.ts");
     let content = fs.readFileSync(appPath, "utf8");
     content = content.replace("/*__IMPORTS__*/", imports.join("\n"));
-    // import env if cors is selected
-    if (res.features && res.features.includes("cors")) {
-        envContent = envContent.replace(
-          "/*__ENV_CORS__*/",
-          "import { ENV } from '@/config';"
-        );
-      }
     content = content.replace("/*__MIDDLEWARE__*/", middlewares.join("\n"));
     fs.writeFileSync(appPath, content);
 
