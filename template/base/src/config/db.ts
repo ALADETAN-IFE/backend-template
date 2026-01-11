@@ -1,8 +1,4 @@
-import mongoose from "mongoose";
-import { ENV } from "./env";
-import { logger } from "@/utils";
-
+// MongoDB connection will be added here when authentication is enabled
 export const connectDB = async () => {
-  await mongoose.connect(ENV.MONGO_URI);
-  logger.log("db", "MongoDB connected");
+  // Database connection placeholder
 };

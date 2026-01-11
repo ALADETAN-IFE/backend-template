@@ -1,27 +1,18 @@
 import { Request, Response } from "express";
-import mongoose from "mongoose";
 import { logger } from "@/utils";
 
 export const healthCheck = async (_: Request, res: Response) => {
-  const mongoState = mongoose.connection.readyState;
-  const healthy = mongoState === 1;
+  logger.info("Health", "healthy");
 
-  const failed: string[] = [];
-  if (mongoState !== 1) failed.push("mongodb");
-
-  logger.info("Health", healthy ? "healthy" : "unhealthy");
-
-  return res.status(healthy ? 200 : 503).json({
-    status: healthy ? "healthy" : "unhealthy",
+  return res.status(200).json({
+    status: "healthy",
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     services: {
-      mongodb: mongoState === 1 ? "connected" : "disconnected",
       memory: {
         rss: process.memoryUsage().rss,
         heapUsed: process.memoryUsage().heapUsed,
       },
     },
-    failed,
   });
 };
