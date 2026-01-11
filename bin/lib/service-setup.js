@@ -261,10 +261,10 @@ await connectDB();`
     const tsconfigPath = path.join(serviceRoot, "tsconfig.json");
     let tsconfigContent = fs.readFileSync(tsconfigPath, "utf8");
     
-    // Remove comments from JSON (simple approach for tsconfig)
+    // Remove comments from JSON (strip-json-comments approach)
     tsconfigContent = tsconfigContent
-      .replace(/\\\/\\\/.*$/gm, '') // Remove single-line comments
-      .replace(/\\\/\\*[\\s\\S]*?\\*\\\//g, ''); // Remove multi-line comments
+      .replace(/\/\/.*$/gm, '') // Remove single-line comments
+      .replace(/\/\*[\s\S]*?\*\//g, ''); // Remove multi-line comments
     
     const tsconfig = JSON.parse(tsconfigContent);
 
