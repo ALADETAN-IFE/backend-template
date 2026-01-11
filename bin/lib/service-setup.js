@@ -122,7 +122,7 @@ export const setupService = async (
     if (res.features && res.features.includes("cors")) {
         envContent = envContent.replace(
           "/*__ENV_CORS__*/",
-          'import { ENV } from '@/config';'
+          "import { ENV } from '@/config';"
         );
       }
     content = content.replace("/*__MIDDLEWARE__*/", middlewares.join("\n"));
