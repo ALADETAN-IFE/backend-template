@@ -1,0 +1,22 @@
+{
+  // Visit https://aka.ms/tsconfig to read more about this file
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "rootDir": "../template/base/src",
+    "outDir": "../template/base/dist",
+
+    "strict": true,
+    "noImplicitAny": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+
+    "baseUrl": "../template/base/src",
+    "paths": {
+      "@/*": ["../template/base/*"]
+    },
+    "types": ["node"]
+  },
+  "include": ["../template/base/src"],
+  "exclude": ["../template/base/node_modules", "../template/base/dist"]
+}

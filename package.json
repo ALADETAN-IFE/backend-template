@@ -1,0 +1,25 @@
+{
+  "name": "@ifecodes/backend-template",
+  "version": "1.0.0",
+  "bin": {
+    "backend-template": "./bin/cli.js"
+  },
+  "type": "module",
+  "files": [
+    "bin",
+    "template"
+  ],
+  "keywords": [
+    "bin",
+    "template",
+    "boilerplate",
+    "typescript",
+    "backend",
+    "express"
+  ],
+  "license": "MIT",
+  "author": "Aladetan Fortune Ifeloju (IfeCodes)",
+  "dependencies": {
+    "prompts": "^2.4.2"
+  }
+}
