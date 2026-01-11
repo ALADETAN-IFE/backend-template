@@ -9,24 +9,24 @@ A powerful CLI tool to generate production-ready Node.js + TypeScript backend ap
 ### Quick Start
 
 ```bash
-npx backend-template my-project
+npx @ifecodes/backend-template my-project
 ```
 
 Or install globally:
 
 ```bash
-npm install -g backend-template
-backend-template my-project
+npm install -g @ifecodes/backend-template
+ifecodes-template my-project
 ```
 
 ### With Arguments
 
 ```bash
 # Create a monolith
-npx backend-template my-api mono
+npx @ifecodes/backend-template my-api mono
 
 # Create a microservice
-npx backend-template my-project micro
+npx @ifecodes/backend-template my-project micro
 ```
 
 ---
@@ -239,7 +239,7 @@ You can add more services to an existing microservice project:
 
 ```bash
 cd my-project
-npx backend-template
+npx @ifecodes/backend-template
 
 # You'll be prompted to name the new service
 # Example: user-service, order-service, etc.

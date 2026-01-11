@@ -10,7 +10,7 @@ assignees: ''
 <!-- A clear and concise description of the bug -->
 
 ## Steps to Reproduce
-1. Run command: `npx backend-template ...`
+1. Run command: `npx @ifecodes/backend-template ...`
 2. Select options: ...
 3. Error occurs when: ...
 

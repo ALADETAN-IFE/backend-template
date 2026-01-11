@@ -1,25 +1,52 @@
 {
   "name": "@ifecodes/backend-template",
   "version": "1.0.0",
+  "description": "Production-ready Express + TypeScript backend generator with optional features and microservice support",
   "bin": {
-    "backend-template": "./bin/cli.js"
+    "ifecodes-template": "./bin/cli.js"
   },
   "type": "module",
   "files": [
     "bin",
     "template"
   ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ALADETAN-IFE/backend-template.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ALADETAN-IFE/backend-template/issues"
+  },
+  "homepage": "https://github.com/ALADETAN-IFE/backend-template#readme",
+  "publishConfig": { 
+    "access": "public" 
+  },
   "keywords": [
-    "bin",
+    "cli",
     "template",
     "boilerplate",
     "typescript",
     "backend",
-    "express"
+    "express",
+    "microservice",
+    "monolith",
+    "nodejs",
+    "generator",
+    "scaffold",
+    "docker",
+    "pm2",
+    "jwt",
+    "authentication"
   ],
   "license": "MIT",
-  "author": "Aladetan Fortune Ifeloju (IfeCodes)",
+  "author": "Aladetan Fortune Ifeloju (IfeCodes) <ifecodes01@gmail.com>",
   "dependencies": {
     "prompts": "^2.4.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

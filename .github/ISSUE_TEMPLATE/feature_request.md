@@ -18,7 +18,7 @@ assignees: ''
 ## Example Usage
 <!-- Show how users would interact with this feature -->
 ```bash
-npx backend-template my-project --feature-flag
+npx @ifecodes/backend-template my-project --feature-flag
 ```
 
 ## Alternatives Considered

@@ -45,7 +45,7 @@ We welcome all kinds of contributions, including bug reports, feature requests, 
 
 5. Test the CLI:
    ```bash
-   backend-template test-project
+   ifecodes-template test-project
    ```
 
 ---
@@ -101,8 +101,8 @@ logger.error("PAYMENT", err);
 3. Test your changes:
    ```bash
    # Test CLI generation
-   backend-template test-project mono
-   backend-template test-microservice micro
+   ifecodes-template test-project mono
+   ifecodes-template test-microservice micro
    
    # Test the generated projects
    cd test-project
@@ -218,13 +218,13 @@ Keep messages concise and descriptive.
 
 ```bash
 # Monolith with all features
-backend-template test-mono mono
+ifecodes-template test-mono mono
 
 # Microservice with Docker
-backend-template test-micro micro
+ifecodes-template test-micro micro
 
 # Test prompts (interactive)
-backend-template
+ifecodes-template
 ```
 
 ### Test Generated Projects
