@@ -205,12 +205,26 @@ if (!isInMicroserviceProject) {
   // Install husky and setup at root level
   if (config.projectType === "microservice") {
     console.log("\n📦 Installing Husky at root level...\n");
-    execSync("npm install", { cwd: target, stdio: "inherit" });
-    console.log("\n🔧 Setting up Husky...\n");
-    execSync("npm run prepare", { cwd: target, stdio: "inherit" });
+    try {
+      execSync("npm install", { cwd: target, stdio: "inherit" });
+      console.log("\n🔧 Setting up Husky...\n");
+      execSync("npm run prepare", { cwd: target, stdio: "inherit" });
+    } catch (error) {
+      console.log("\n⚠️  Husky setup skipped (dependencies not installed)\n");
+    }
   } else if (config.projectType === "monolith") {
-    console.log("\n🔧 Setting up Husky...\n");
-    execSync("npm run prepare", { cwd: target, stdio: "inherit" });
+    // Only setup Husky if node_modules exists (dependencies installed successfully)
+    const nodeModulesPath = path.join(target, "node_modules");
+    if (fs.existsSync(nodeModulesPath)) {
+      console.log("\n🔧 Setting up Husky...\n");
+      try {
+        execSync("npm run prepare", { cwd: target, stdio: "inherit" });
+      } catch (error) {
+        console.log("\n⚠️  Husky setup failed (run 'npm run prepare' manually after fixing dependencies)\n");
+      }
+    } else {
+      console.log("\n⚠️  Husky setup skipped (run 'npm install && npm run prepare' to set up git hooks)\n");
+    }
   }
 }
 
