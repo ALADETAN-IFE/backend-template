@@ -3,6 +3,9 @@ import fs from "fs";
 import path from "path";
 
 export const getProjectConfig = async () => {
+  // Check if running in CI or non-interactive mode
+  const isCI = process.env.CI === 'true' || !process.stdin.isTTY;
+  
   // Check if we're in an existing microservice project
   const isInMicroserviceProject = fs.existsSync(
     path.join(process.cwd(), "services")
@@ -36,15 +39,16 @@ export const getProjectConfig = async () => {
   // Pre-fill values from CLI args if provided
   const hasCliArgs = cliName && !isInMicroserviceProject;
 
-  const res = await prompts([
+  const res = await prompts(
+    [
     {
-      type: isInMicroserviceProject || hasCliArgs ? null : "text",
+      type: isInMicroserviceProject || hasCliArgs || isCI ? null : "text",
       name: "name",
       message: "Project name",
       initial: "my-backend",
     },
     {
-      type: isInMicroserviceProject || (hasCliArgs && cliProjectType) ? null : "select",
+      type: isInMicroserviceProject || (hasCliArgs && cliProjectType) || isCI ? null : "select",
       name: "projectType",
       message: "Project type",
       choices: [
@@ -54,7 +58,7 @@ export const getProjectConfig = async () => {
     },
     {
       type: (prev, values) =>
-        isInMicroserviceProject
+        isInMicroserviceProject || isCI
           ? null
           : prev === "microservice"
           ? "select"
@@ -67,7 +71,7 @@ export const getProjectConfig = async () => {
       ],
     },
     {
-      type: isInMicroserviceProject ? "text" : "multiselect",
+      type: isInMicroserviceProject ? "text" : isCI ? null : "multiselect",
       name: isInMicroserviceProject ? "serviceName" : "features",
       message: isInMicroserviceProject
         ? "New service name (e.g., user-service, order-service)"
@@ -82,7 +86,7 @@ export const getProjectConfig = async () => {
           ],
     },
     {
-      type: "toggle",
+      type: isCI ? null : "toggle",
       name: "auth",
       message: isInMicroserviceProject
         ? "Include authentication in this service?"
@@ -92,7 +96,7 @@ export const getProjectConfig = async () => {
       inactive: "no",
     },
     {
-      type: isInMicroserviceProject ? "multiselect" : null,
+      type: isInMicroserviceProject && !isCI ? "multiselect" : null,
       name: "features",
       message: "Select features for this service",
       choices: [
@@ -103,6 +107,12 @@ export const getProjectConfig = async () => {
       ],
     },
   ]);
+
+  // Set defaults for CI/non-interactive mode
+  if (isCI) {
+    res.features = res.features || [];
+    res.auth = res.auth ?? false;
+  }
 
   // Merge CLI args with prompted responses
   if (hasCliArgs) {
