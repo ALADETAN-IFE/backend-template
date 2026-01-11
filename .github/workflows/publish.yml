@@ -27,4 +27,6 @@ jobs:
       run: npm ci
 
     - name: Publish to npm
-      run: npm publish
+      run: npm publish --access public
+      env:
+        NODE_OPTIONS: --enable-source-maps
