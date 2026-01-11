@@ -27,6 +27,6 @@ jobs:
       run: npm ci
 
     - name: Publish to npm
-      run: npm publish --access public
+      run: npm publish --access public --loglevel verbose
       env:
         NODE_OPTIONS: --enable-source-maps
