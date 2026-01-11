@@ -112,6 +112,7 @@ export const getProjectConfig = async () => {
   if (isCI) {
     res.features = res.features || [];
     res.auth = res.auth ?? false;
+    res.mode = res.mode || "docker"; // Default to docker in CI
   }
 
   // Merge CLI args with prompted responses
