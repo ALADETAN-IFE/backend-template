@@ -1,4 +1,7 @@
 {
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/server.ts",
     "start": "node dist/server.js",
@@ -8,6 +11,10 @@
     "check-format": "prettier --check \"src/**/*.{ts,json}\"",
     "prepare": "husky"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
   "dependencies": {
     "dotenv": "^16.3.1",
     "express": "^5.2.1",

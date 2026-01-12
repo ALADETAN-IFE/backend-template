@@ -301,10 +301,41 @@ await connectDB();`
   // Update package.json
   const packageJsonPath = path.join(serviceRoot, "package.json");
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-  packageJson.name = serviceName || res.sanitizedName;
+  
+  // Create new package.json with name at the top
+  const orderedPackageJson = {
+    name: serviceName || res.sanitizedName,
+    version: packageJson.version,
+    description: res.description || packageJson.description,
+    ...packageJson,
+  };
+  
+  // Remove duplicate keys that were moved to the top
+  delete orderedPackageJson.name;
+  delete orderedPackageJson.version;
+  delete orderedPackageJson.description;
+  
+  // Re-add them at the top in correct order
+  const finalPackageJson = {
+    name: serviceName || res.sanitizedName,
+    version: packageJson.version,
+    description: res.description || packageJson.description,
+    ...orderedPackageJson,
+  };
+  
+  // Add author if provided
+  if (res.author) {
+    finalPackageJson.author = res.author;
+  }
+  
+  // Add keywords if provided
+  if (res.keywords && res.keywords.trim()) {
+    finalPackageJson.keywords = res.keywords.split(',').map(k => k.trim()).filter(Boolean);
+  }
+  
   fs.writeFileSync(
     packageJsonPath,
-    JSON.stringify(packageJson, null, 2) + "\n"
+    JSON.stringify(finalPackageJson, null, 2) + "\n"
   );
 
   // Install dependencies

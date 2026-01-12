@@ -48,6 +48,24 @@ export const getProjectConfig = async () => {
       initial: "my-backend",
     },
     {
+      type: isInMicroserviceProject || hasCliArgs || isCI ? null : "text",
+      name: "description",
+      message: "Project description (optional)",
+      initial: "",
+    },
+    {
+      type: isInMicroserviceProject || hasCliArgs || isCI ? null : "text",
+      name: "author",
+      message: "Author (optional)",
+      initial: "",
+    },
+    {
+      type: isInMicroserviceProject || hasCliArgs || isCI ? null : "text",
+      name: "keywords",
+      message: "Keywords (comma-separated, optional)",
+      initial: "",
+    },
+    {
       type: isInMicroserviceProject || (hasCliArgs && cliProjectType) || isCI ? null : "select",
       name: "projectType",
       message: "Project type",
