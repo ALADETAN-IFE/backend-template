@@ -6,4 +6,5 @@ export const ENV = {
   /*__ALLOWED_ORIGIN__*/
   NODE_ENV: process.env.NODE_ENV!,
   /*__MONGO_URI__*/
+  /*__JWT_SECRET__*/
 };

@@ -123,20 +123,29 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
         .filter((f) => fs.statSync(path.join(servicesDir, f)).isDirectory())
     : servicesToCreate;
 
+  // Track if all installs succeeded for Husky setup
+  let allInstallsSucceeded = true;
+
   // Now setup each service with knowledge of all services
   for (const serviceName of servicesToCreate) {
     const serviceRoot = path.join(target, "services", serviceName);
     const shouldIncludeAuth = isInMicroserviceProject
       ? config.auth
       : serviceName === "auth-service";
-    await setupService(
+    const result = await setupService(
       config,
       serviceName,
       serviceRoot,
       shouldIncludeAuth,
       allServices
     );
+    if (!result.installSucceeded) {
+      allInstallsSucceeded = false;
+    }
   }
+
+  // Store for later use
+  config.allInstallsSucceeded = allInstallsSucceeded;
 
   if (mode === "docker") {
     generateDockerCompose(target, allServices);
@@ -165,7 +174,8 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
     );
   }
 } else {
-  await setupService(config, null, target, true);
+  const result = await setupService(config, null, target, true);
+  config.installSucceeded = result.installSucceeded;
 }
 
 // Generate README.md
@@ -205,17 +215,20 @@ if (!isInMicroserviceProject) {
   // Install husky and setup at root level
   if (config.projectType === "microservice") {
     console.log("\n📦 Installing Husky at root level...\n");
-    try {
-      execSync("npm install", { cwd: target, stdio: "inherit" });
-      console.log("\n🔧 Setting up Husky...\n");
-      execSync("npm run prepare", { cwd: target, stdio: "inherit" });
-    } catch (error) {
-      console.log("\n⚠️  Husky setup skipped (dependencies not installed)\n");
+    if (config.allInstallsSucceeded) {
+      try {
+        execSync("npm install", { cwd: target, stdio: "inherit" });
+        console.log("\n🔧 Setting up Husky...\n");
+        execSync("npm run prepare", { cwd: target, stdio: "inherit" });
+      } catch (error) {
+        console.log("\n⚠️  Husky setup failed\n");
+      }
+    } else {
+      console.log("\n⚠️  Husky setup skipped (run 'npm install && npm run prepare' after fixing service dependencies)\n");
     }
   } else if (config.projectType === "monolith") {
-    // Only setup Husky if node_modules exists (dependencies installed successfully)
-    const nodeModulesPath = path.join(target, "node_modules");
-    if (fs.existsSync(nodeModulesPath)) {
+    // Only setup Husky if installation succeeded
+    if (config.installSucceeded) {
       console.log("\n🔧 Setting up Husky...\n");
       try {
         execSync("npm run prepare", { cwd: target, stdio: "inherit" });
