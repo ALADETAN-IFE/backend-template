@@ -184,6 +184,28 @@ if (!isInMicroserviceProject) {
   const readmeContent = generateReadme(config);
   fs.writeFileSync(path.join(target, "README.md"), readmeContent);
   
+  // Rename gitignore to .gitignore (npm doesn't publish .gitignore files)
+  if (config.projectType === "microservice") {
+    const servicesDir = path.join(target, "services");
+    const allServices = fs.readdirSync(servicesDir).filter((f) => 
+      fs.statSync(path.join(servicesDir, f)).isDirectory()
+    );
+    
+    for (const service of allServices) {
+      const gitignorePath = path.join(servicesDir, service, "gitignore");
+      const dotGitignorePath = path.join(servicesDir, service, ".gitignore");
+      if (fs.existsSync(gitignorePath)) {
+        fs.renameSync(gitignorePath, dotGitignorePath);
+      }
+    }
+  } else {
+    const gitignorePath = path.join(target, "gitignore");
+    const dotGitignorePath = path.join(target, ".gitignore");
+    if (fs.existsSync(gitignorePath)) {
+      fs.renameSync(gitignorePath, dotGitignorePath);
+    }
+  }
+  
   // Generate .env from .env.example for each service or root
   console.log("📄 Setting up environment files...\n");
   if (config.projectType === "microservice") {

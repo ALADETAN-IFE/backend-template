@@ -1,5 +1,7 @@
 export const deps = ["bcrypt"];
 
+export const devDeps = ["@types/bcrypt"];
+
 export const files = {
   "src/utils/hash.ts": `
 import bcrypt from "bcrypt";

@@ -84,6 +84,7 @@ export const imports = `import { authRoutes } from "./auth";`;
 
 export const middleware = `router.use("/auth", authRoutes);`;
 
-export const deps = ["jsonwebtoken", "@types/jsonwebtoken", "mongoose"];
+export const deps = ["jsonwebtoken", "mongoose"];
+export const devDeps = ["@types/jsonwebtoken"];
 
 export const targetFile = "src/modules/v1/index.ts";

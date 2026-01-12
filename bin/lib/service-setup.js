@@ -14,6 +14,7 @@ export const setupService = async (
   let imports = [];
   let middlewares = [];
   let deps = [];
+  let devDeps = [];
   let v1Imports = [];
   let v1Routes = [];
 
@@ -61,6 +62,9 @@ export const setupService = async (
         imports.push(feature.imports);
         middlewares.push(feature.middleware);
         deps.push(...feature.deps);
+        if (feature.devDeps) {
+          devDeps.push(...feature.devDeps);
+        }
       }
     }
 
@@ -70,6 +74,9 @@ export const setupService = async (
         "../../template/features/auth/base/inject.js"
       );
       deps.push(...baseAuth.deps);
+      if (baseAuth.devDeps) {
+        devDeps.push(...baseAuth.devDeps);
+      }
 
       for (const file in baseAuth.files) {
         const fullPath = path.join(serviceRoot, file);
@@ -103,6 +110,9 @@ export const setupService = async (
         `../../template/features/auth/${algo.hasher}/inject.js`
       );
       deps.push(...hashFeature.deps);
+      if (hashFeature.devDeps) {
+        devDeps.push(...hashFeature.devDeps);
+      }
 
       for (const file in hashFeature.files) {
         const fullPath = path.join(serviceRoot, file);
@@ -307,6 +317,12 @@ await connectDB();`
   try {
     if (deps.length) {
       execSync(`npm install ${deps.join(" ")}`, {
+        cwd: serviceRoot,
+        stdio: "inherit",
+      });
+    }
+    if (devDeps.length) {
+      execSync(`npm install -D ${devDeps.join(" ")}`, {
         cwd: serviceRoot,
         stdio: "inherit",
       });
