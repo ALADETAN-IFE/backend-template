@@ -17,6 +17,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Release notes
+RELEASE_NOTES_*.md
+
 # OS files
 .DS_Store
 Thumbs.db
