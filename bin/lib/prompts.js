@@ -48,6 +48,16 @@ export const getProjectConfig = async () => {
       initial: "my-backend",
     },
     {
+      type: isInMicroserviceProject || isCI ? null : "select",
+      name: "language",
+      message: "Select language",
+      choices: [
+        { title: "TypeScript", value: "typescript" },
+        { title: "JavaScript", value: "javascript" },
+      ],
+      initial: 0,
+    },
+    {
       type: isInMicroserviceProject || hasCliArgs || isCI ? null : "text",
       name: "description",
       message: "Project description (optional)",
@@ -131,6 +141,7 @@ export const getProjectConfig = async () => {
     res.features = res.features || [];
     res.auth = res.auth ?? false;
     res.mode = res.mode || "docker"; // Default to docker in CI
+    res.language = res.language || "typescript"; // Default to TypeScript in CI
   }
 
   // Merge CLI args with prompted responses
