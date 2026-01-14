@@ -58,7 +58,8 @@ if (!isInMicroserviceProject && config.projectType === "microservice") {
   
   // Transform to JavaScript if selected
   if (config.language === "javascript") {
-    console.log("\n🔄 Converting TypeScript to JavaScript...\n");
+    // console.log("\n🔄 Converting TypeScript to JavaScript...\n");
+    console.log("\n⚙️  Setting up JavaScript project...\n");
     transformToJavaScript(target);
   }
 } else if (isInMicroserviceProject) {
