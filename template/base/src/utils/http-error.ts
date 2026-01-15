@@ -43,5 +43,3 @@ export class InternalServerError extends HttpError {
     super(500, message);
   }
 }
-
-export default HttpError;

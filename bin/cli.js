@@ -7,7 +7,7 @@ import pc from "picocolors";
 import { getProjectConfig } from "./lib/prompts.js";
 import { setupService } from "./lib/service-setup.js";
 import { generateReadme } from "./lib/readme-generator.js";
-import { stripTypeScript, getJavaScriptScripts, getJavaScriptDependencies } from "./lib/ts-to-js.js";
+import { stripTypeScript, getJavaScriptScripts, getJavaScriptDependencies, transformToJavaScript, transformDirectory } from "./lib/ts-to-js.js";
 import {
   generateDockerCompose,
   generatePm2Config,
@@ -65,97 +65,6 @@ if (!isInMicroserviceProject && config.projectType === "microservice") {
   }
 } else if (isInMicroserviceProject) {
   console.log(`\n${pc.cyan("🏗️  Adding service:")} ${pc.bold(servicesToCreate[0])}...\n`);
-}
-
-// Helper function to transform TypeScript project to JavaScript
-function transformToJavaScript(projectRoot) {
-  // Recursively find and transform all .ts files
-  function transformDirectory(dir) {
-    const items = fs.readdirSync(dir);
-    
-    for (const item of items) {
-      const fullPath = path.join(dir, item);
-      const stat = fs.statSync(fullPath);
-      
-      if (stat.isDirectory()) {
-        // Skip node_modules and dist
-        if (item !== 'node_modules' && item !== 'dist') {
-          transformDirectory(fullPath);
-        }
-      } else if (item.endsWith('.ts') && !item.endsWith('.d.ts')) {
-        // Transform TypeScript file to JavaScript
-        const content = fs.readFileSync(fullPath, 'utf8');
-        const jsContent = stripTypeScript(content);
-        const jsPath = fullPath.replace(/\.ts$/, '.js');
-        
-        fs.writeFileSync(jsPath, jsContent);
-        fs.unlinkSync(fullPath); // Remove original .ts file
-      }
-    }
-  }
-  
-  transformDirectory(path.join(projectRoot, 'src'));
-  
-  // Remove TypeScript config file
-  const tsconfigPath = path.join(projectRoot, 'tsconfig.json');
-  if (fs.existsSync(tsconfigPath)) {
-    fs.unlinkSync(tsconfigPath);
-  }
-  
-  // Remove .eslintrc.json and replace with JS version
-  const eslintrcPath = path.join(projectRoot, '.eslintrc.json');
-  if (fs.existsSync(eslintrcPath)) {
-    fs.unlinkSync(eslintrcPath);
-  }
-  
-  // Update package.json
-  const packageJsonPath = path.join(projectRoot, 'package.json');
-  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-  
-  // Update scripts
-  packageJson.scripts = {
-    ...packageJson.scripts,
-    ...getJavaScriptScripts()
-  };
-  
-  // Update type
-  packageJson.type = "module";
-  
-  // Remove main field
-  delete packageJson.main;
-  
-  // Update dependencies
-  const { dependencies, devDependencies } = getJavaScriptDependencies(
-    packageJson.dependencies,
-    packageJson.devDependencies
-  );
-  
-  packageJson.dependencies = dependencies;
-  packageJson.devDependencies = devDependencies;
-  
-  // Remove _moduleAliases (not needed for ES modules with import maps)
-  delete packageJson._moduleAliases;
-  
-  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
-  
-  // Create simple .eslintrc.json for JavaScript
-  const eslintConfig = {
-    env: {
-      node: true,
-      es2021: true
-    },
-    extends: ["eslint:recommended", "prettier"],
-    parserOptions: {
-      ecmaVersion: "latest",
-      sourceType: "module"
-    },
-    rules: {}
-  };
-  
-  fs.writeFileSync(
-    path.join(projectRoot, '.eslintrc.json'),
-    JSON.stringify(eslintConfig, null, 2) + '\n'
-  );
 }
 
 // Process services
@@ -246,6 +155,26 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
 
   // Store for later use
   config.allInstallsSucceeded = allInstallsSucceeded;
+
+  // Transform to JavaScript if selected (for microservices)
+  if (config.language === "javascript") {
+    console.log(`\n${pc.cyan("⚙️  Converting microservices to JavaScript...")}\n`);
+    
+    // Transform shared folder
+    const sharedDir = path.join(target, "shared");
+    if (fs.existsSync(sharedDir)) {
+      transformDirectory(sharedDir);
+    }
+    
+    // Transform each service
+    for (const serviceName of allServices) {
+      const serviceRoot = path.join(target, "services", serviceName);
+      console.log(pc.dim(`   Transforming ${serviceName}...`));
+      transformToJavaScript(serviceRoot);
+    }
+    
+    console.log(pc.green("✓ JavaScript transformation complete\n"));
+  }
 
   if (mode === "docker") {
     generateDockerCompose(target, allServices);

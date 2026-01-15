@@ -4,7 +4,7 @@
  */
 
 /**
- * Strip TypeScript type annotations from code
+ * Strip TypeScript type annotations from code and fix imports for JavaScript
  * @param {string} content - TypeScript file content
  * @returns {string} - JavaScript content
  */
@@ -67,6 +67,30 @@ export function stripTypeScript(content) {
     return `const ${name} = {\n${obj}\n}`;
   });
 
+  // Fix import paths for Node.js ESM
+  // 1. Replace TypeScript alias @/ with Node.js native #/
+  jsContent = jsContent.replace(/from\s+["']@\//g, 'from "#/');
+  jsContent = jsContent.replace(/import\s*\(\s*["']@\//g, 'import("#/');
+  jsContent = jsContent.replace(/require\s*\(\s*["']@\//g, 'require("#/');
+  
+  // 2. Add .js extension to #/ imports (they're now pointing to .js files)
+  jsContent = jsContent.replace(/from\s+["']#\/([^"']+)["']/g, (match, path) => {
+    // Don't add .js if it already has an extension or is a directory import
+    if (path.endsWith('.js') || path.endsWith('.json') || path.endsWith('/')) {
+      return match;
+    }
+    return `from "#/${path}.js"`;
+  });
+  
+  // 3. Add .js extension to relative imports
+  jsContent = jsContent.replace(/from\s+["'](\.\.?\/[^"']+)["']/g, (match, path) => {
+    // Don't add .js if it already has an extension
+    if (path.match(/\.\w+$/)) {
+      return match;
+    }
+    return `from "${path}.js"`;
+  });
+
   // Remove multiple consecutive blank lines
   jsContent = jsContent.replace(/\n\s*\n\s*\n/g, '\n\n');
 
@@ -121,3 +145,126 @@ export function getJavaScriptDependencies(originalDeps, originalDevDeps) {
     devDependencies: devDeps
   };
 }
+
+/**
+ * Get package.json imports field for Node.js native path aliasing
+ * This replaces TypeScript's tsconfig paths with Node's native imports
+ * @returns {Object} - imports configuration
+ */
+export function getNodeImportsConfig() {
+  return {
+    "#/*": "./src/*"
+  };
+}
+
+import fs from 'fs';
+import path from 'path';
+
+/**
+ * Transform a single TypeScript file to JavaScript
+ * @param {string} filePath - Path to .ts file
+ */
+function transformFile(filePath) {
+  const content = fs.readFileSync(filePath, 'utf-8');
+  const jsContent = stripTypeScript(content);
+  
+  // Write to .js file
+  const jsFilePath = filePath.replace(/\.ts$/, '.js');
+  fs.writeFileSync(jsFilePath, jsContent);
+  
+  // Remove original .ts file
+  fs.unlinkSync(filePath);
+}
+
+/**
+ * Recursively transform all .ts files in a directory to .js
+ * @param {string} dir - Directory path
+ */
+export function transformDirectory(dir) {
+  if (!fs.existsSync(dir)) return;
+
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      // Skip node_modules and other non-source directories
+      if (entry.name === 'node_modules' || entry.name === '.git') {
+        continue;
+      }
+      transformDirectory(fullPath);
+    } else if (entry.isFile() && entry.name.endsWith('.ts')) {
+      transformFile(fullPath);
+    }
+  }
+}
+
+/**
+ * Main function to transform a TypeScript project to JavaScript
+ * @param {string} targetDir - Root directory of the project
+ */
+export function transformToJavaScript(targetDir) {
+  // Transform all .ts files to .js
+  const srcDir = path.join(targetDir, 'src');
+  if (fs.existsSync(srcDir)) {
+    transformDirectory(srcDir);
+  }
+
+  // Update package.json
+  const packageJsonPath = path.join(targetDir, 'package.json');
+  if (fs.existsSync(packageJsonPath)) {
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+
+    // Get JavaScript dependencies
+    const { dependencies, devDependencies } = getJavaScriptDependencies(
+      packageJson.dependencies || {},
+      packageJson.devDependencies || {}
+    );
+
+    // Update package.json
+    packageJson.dependencies = dependencies;
+    packageJson.devDependencies = devDependencies;
+    packageJson.scripts = getJavaScriptScripts();
+    
+    // Add Node.js native imports for path aliasing
+    packageJson.imports = getNodeImportsConfig();
+
+    // Ensure type: module is set
+    packageJson.type = 'module';
+
+    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
+  }
+
+  // Remove tsconfig.json if it exists
+  const tsconfigPath = path.join(targetDir, 'tsconfig.json');
+  if (fs.existsSync(tsconfigPath)) {
+    fs.unlinkSync(tsconfigPath);
+  }
+
+  // Update .prettierrc if it exists to use .js instead of .ts
+  const prettierrcPath = path.join(targetDir, '.prettierrc');
+  if (fs.existsSync(prettierrcPath)) {
+    let prettierConfig = fs.readFileSync(prettierrcPath, 'utf-8');
+    prettierConfig = prettierConfig.replace(/\.ts/g, '.js');
+    fs.writeFileSync(prettierrcPath, prettierConfig);
+  }
+
+  // Update eslint.config.js if it exists
+  const eslintConfigPath = path.join(targetDir, 'eslint.config.js');
+  if (fs.existsSync(eslintConfigPath)) {
+    let eslintConfig = fs.readFileSync(eslintConfigPath, 'utf-8');
+    
+    // Remove TypeScript parser and plugin
+    eslintConfig = eslintConfig.replace(/@typescript-eslint\/parser/g, '');
+    eslintConfig = eslintConfig.replace(/@typescript-eslint\/eslint-plugin/g, '');
+    eslintConfig = eslintConfig.replace(/tseslint\./g, '');
+    eslintConfig = eslintConfig.replace(/import tseslint[^\n]+\n/g, '');
+    
+    // Update file patterns
+    eslintConfig = eslintConfig.replace(/\*\*\/\*\.ts/g, '**/*.js');
+    
+    fs.writeFileSync(eslintConfigPath, eslintConfig);
+  }
+}
+

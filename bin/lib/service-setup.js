@@ -350,6 +350,14 @@ await connectDB();`
     finalPackageJson.keywords = res.keywords.split(',').map(k => k.trim()).filter(Boolean);
   }
   
+  // Add Node.js native path aliasing for JavaScript projects
+  // This replaces TypeScript's tsconfig paths with Node's native imports field
+  if (res.language === 'javascript') {
+    finalPackageJson.imports = {
+      "#/*": "./src/*"
+    };
+  }
+  
   fs.writeFileSync(
     packageJsonPath,
     JSON.stringify(finalPackageJson, null, 2) + "\n"
