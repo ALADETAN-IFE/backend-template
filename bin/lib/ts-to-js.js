@@ -20,42 +20,96 @@ export function stripTypeScript(content) {
     return match.replace(/,?\s*type\s+\w+/g, '').replace(/\{\s*,/, '{').replace(/,\s*\}/, '}');
   });
 
+  // Remove imports from express types (Request, Response, etc.)
+  jsContent = jsContent.replace(/import\s*\{\s*Request\s*,\s*Response\s*\}\s*from\s*["']express["'];?\s*\n/gm, '');
+  jsContent = jsContent.replace(/import\s*\{\s*Response\s*,\s*Request\s*\}\s*from\s*["']express["'];?\s*\n/gm, '');
+  jsContent = jsContent.replace(/import\s*\{\s*Request\s*\}\s*from\s*["']express["'];?\s*\n/gm, '');
+  jsContent = jsContent.replace(/import\s*\{\s*Response\s*\}\s*from\s*["']express["'];?\s*\n/gm, '');
+
   // Remove interface declarations
-  jsContent = jsContent.replace(/^export\s+interface\s+\w+\s*\{[^}]*\}\s*$/gm, '');
-  jsContent = jsContent.replace(/^interface\s+\w+\s*\{[^}]*\}\s*$/gm, '');
+  // CRITICAL: Must have 'interface' keyword explicitly (not 'const' or other keywords)
+  // Single-line interfaces
+  jsContent = jsContent.replace(/^export\s+interface\s+\w+(\s+extends\s+[\w,\s]+)?\s*\{[^}]*\}\s*;?\s*$/gm, '');
+  jsContent = jsContent.replace(/^interface\s+\w+(\s+extends\s+[\w,\s]+)?\s*\{[^}]*\}\s*;?\s*$/gm, '');
+  
+  // Multi-line interfaces - must have a line break after the interface name/extends before {
+  // This prevents matching regular object literals
+  jsContent = jsContent.replace(/^export\s+interface\s+\w+(\s+extends\s+[\w,\s<>]+)?\s*\{[\s\S]*?^}/gm, '');
+  jsContent = jsContent.replace(/^interface\s+\w+(\s+extends\s+[\w,\s<>]+)?\s*\{[\s\S]*?^}/gm, '');
 
   // Remove type aliases
   jsContent = jsContent.replace(/^export\s+type\s+\w+\s*=\s*[^;]+;\s*$/gm, '');
   jsContent = jsContent.replace(/^type\s+\w+\s*=\s*[^;]+;\s*$/gm, '');
+  
+  // Remove class property type annotations: public/private/protected status: number;
+  // CRITICAL: Only match single-line class properties (use [^\n;=]+ instead of [^;=]+)
+  jsContent = jsContent.replace(/^\s*(public|private|protected)?\s+(\w+)\s*:\s*[^\n;=]+;/gm, '');
+  
+  // Remove visibility modifiers and types from constructor parameters
+  jsContent = jsContent.replace(/constructor\s*\(\s*([^)]*)\)\s*\{/g, (match, params) => {
+    if (!params.trim()) return 'constructor() {';
+    const cleanParams = params
+      .split(',')
+      .map(p => {
+        // Remove visibility modifiers
+        let cleaned = p.replace(/^\s*(public|private|protected)\s+/, '');
+        // Remove type annotation (everything after :)
+        cleaned = cleaned.replace(/:\s*[^=,]+/, '');
+        return cleaned.trim();
+      })
+      .filter(p => p)
+      .join(', ');
+    return `constructor(${cleanParams}) {`;
+  });
 
-  // Remove parameter types: (param: Type) => (param)
-  jsContent = jsContent.replace(/\(\s*(\w+)\s*:\s*[^,)]+/g, '($1');
-  jsContent = jsContent.replace(/,\s*(\w+)\s*:\s*[^,)]+/g, ', $1');
+  // Remove ! non-null assertions FIRST (before other transformations)
+  // Only remove ! that appears after identifiers, closing brackets, or closing parentheses
+  // Be very conservative to avoid breaking other syntax
+  jsContent = jsContent.replace(/([a-zA-Z0-9_\])])!/g, '$1');
   
-  // Remove return types: ): Type => ): void => ()
-  jsContent = jsContent.replace(/\)\s*:\s*[^{=>\n]+\s*=>/g, ') =>');
-  jsContent = jsContent.replace(/\)\s*:\s*[^{=>\n]+\s*\{/g, ') {');
+  // Remove function parameter types - IMPROVED VERSION
+  // Handle spread parameters: ...args: Type[] => ...args
+  jsContent = jsContent.replace(/(\.\.\.\s*\w+)\s*:\s*[^,)]+/g, '$1');
   
-  // Remove variable type annotations: const x: Type = ... => const x = ...
-  jsContent = jsContent.replace(/:\s*[^=\n]+(?=\s*=)/g, '');
+  // Handle regular parameters with more precision
+  // Match parameter name followed by colon and type, but not property access
+  jsContent = jsContent.replace(/\(([^)]*)\)/g, (match, params) => {
+    // Skip if it's not a parameter list (e.g., empty parens or no colons)
+    if (!params.includes(':')) return match;
+    
+    const cleanedParams = params
+      .split(',')
+      .map(param => {
+        // Remove type annotation (everything from : to end of param or = sign)
+        return param.replace(/:\s*[^,=]+/, '');
+      })
+      .join(',');
+    
+    return `(${cleanedParams})`;
+  });
   
-  // Remove function return types
-  jsContent = jsContent.replace(/function\s+(\w+)\s*\([^)]*\)\s*:\s*[^{]+\{/g, 'function $1($2) {');
+  // Remove return type annotations - IMPROVED VERSION
+  // Match ): Type => but only consume the type part
+  jsContent = jsContent.replace(/\)\s*:\s*[^{=>]+(\s*=>)/g, ')$1');
+  jsContent = jsContent.replace(/\)\s*:\s*[^{=>]+(\s*\{)/g, ')$1');
   
-  // Remove as type assertions
-  jsContent = jsContent.replace(/\s+as\s+\w+/g, '');
+  // Remove function parameter types in function declarations
+  jsContent = jsContent.replace(/function\s+(\w+)\s*:\s*[^=]+/g, 'function $1');
   
-  // Remove angle bracket type assertions: <Type>value => value
-  jsContent = jsContent.replace(/<\w+>/g, '');
+  // Remove as type assertions (including 'as const')
+  jsContent = jsContent.replace(/\s+as\s+(const|any|unknown|readonly|\w+)/g, '');
   
-  // Remove ! non-null assertions
-  jsContent = jsContent.replace(/(\w+)!/g, '$1');
+  // Remove satisfies operators
+  jsContent = jsContent.replace(/\s+satisfies\s+[^;,\n]+/g, '');
   
-  // Remove ? optional chaining that's TypeScript specific
-  // Keep ?. and ?? as they're valid JS
+  // Remove angle bracket type assertions: <Type>value => value (but not JSX)
+  jsContent = jsContent.replace(/<[\w\[\]]+>(?=[^<]*[^>])/g, '');
   
-  // Remove generic type parameters
-  jsContent = jsContent.replace(/<[^>]+>/g, '');
+  // Remove optional property markers: property?: Type => property
+  jsContent = jsContent.replace(/(\w+)\?\s*:/g, '$1:');
+  
+  // Remove generic type parameters from class/function declarations
+  jsContent = jsContent.replace(/(class|function|interface)\s+(\w+)\s*<[^>]+>/g, '$1 $2');
   
   // Remove enum declarations (convert to object)
   jsContent = jsContent.replace(/enum\s+(\w+)\s*\{([^}]+)\}/g, (match, name, body) => {

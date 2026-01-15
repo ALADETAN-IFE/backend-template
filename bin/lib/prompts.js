@@ -138,7 +138,8 @@ export const getProjectConfig = async () => {
   ]);
 
   // Handle cancelled prompts (user pressed Ctrl+C or closed the prompt)
-  if (!res || !res.name) {
+  // Only check for res object itself - res.name might be skipped if CLI args provided
+  if (!res || Object.keys(res).length === 0) {
     console.log(pc.yellow("\n❌ Operation cancelled by user."));
     process.exit(0);
   }
@@ -160,6 +161,11 @@ export const getProjectConfig = async () => {
       // If no project type in CLI, default to monolith
       res.projectType = res.projectType || "monolith";
     }
+  }
+  
+  // Ensure we have a project name (fallback if somehow missed)
+  if (!res.name && !isInMicroserviceProject) {
+    res.name = "my-backend";
   }
 
   let sanitizedName, target, isExistingProject, mode;
