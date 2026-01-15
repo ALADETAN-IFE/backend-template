@@ -59,19 +59,19 @@ export const getProjectConfig = async () => {
       initial: 0,
     },
     {
-      type: isInMicroserviceProject || hasCliArgs || isCI ? null : "text",
+      type: isInMicroserviceProject || isCI ? null : "text",
       name: "description",
       message: pc.cyan("Project description") + pc.dim(" (optional)"),
       initial: "",
     },
     {
-      type: isInMicroserviceProject || hasCliArgs || isCI ? null : "text",
+      type: isInMicroserviceProject || isCI ? null : "text",
       name: "author",
       message: pc.cyan("Author") + pc.dim(" (optional)"),
       initial: "",
     },
     {
-      type: isInMicroserviceProject || hasCliArgs || isCI ? null : "text",
+      type: isInMicroserviceProject || isCI ? null : "text",
       name: "keywords",
       message: pc.cyan("Keywords") + pc.dim(" (comma-separated, optional)"),
       initial: "",
@@ -135,13 +135,34 @@ export const getProjectConfig = async () => {
         { title: pc.blue("CORS"), value: "cors" },
       ],
     },
-  ]);
+  ],
+  {
+    onCancel: () => {
+      console.log(pc.yellow("\n❌ Operation cancelled by user."));
+      process.exit(0);
+    }
+  });
 
   // Handle cancelled prompts (user pressed Ctrl+C or closed the prompt)
-  // Only check for res object itself - res.name might be skipped if CLI args provided
-  if (!res || Object.keys(res).length === 0) {
+  // Check if user cancelled the prompt (Ctrl+C) vs just didn't enter anything
+  if (!res) {
     console.log(pc.yellow("\n❌ Operation cancelled by user."));
     process.exit(0);
+  }
+  
+  // Check if critical fields are missing (indicates cancellation mid-prompt)
+  if (!isInMicroserviceProject && !isCI) {
+    // For new projects, we need language and projectType
+    if (!res.language || (!res.projectType && !cliProjectType)) {
+      console.log(pc.yellow("\n❌ Operation cancelled by user."));
+      process.exit(0);
+    }
+  }
+  
+  // If the response is empty but we expected prompts, something went wrong
+  if (Object.keys(res).length === 0 && !isInMicroserviceProject && !hasCliArgs && !isCI) {
+    console.log(pc.red("\n❌ No inputs received. Please try again."));
+    process.exit(1);
   }
 
   // Set defaults for CI/non-interactive mode

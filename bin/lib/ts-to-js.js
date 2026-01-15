@@ -20,11 +20,13 @@ export function stripTypeScript(content) {
     return match.replace(/,?\s*type\s+\w+/g, '').replace(/\{\s*,/, '{').replace(/,\s*\}/, '}');
   });
 
-  // Remove imports from express types (Request, Response, etc.)
+  // Remove imports from express types (Request, Response, NextFunction, etc.)
+  jsContent = jsContent.replace(/import\s*\{\s*Request\s*,\s*Response\s*,\s*NextFunction\s*\}\s*from\s*["']express["'];?\s*\n/gm, '');
   jsContent = jsContent.replace(/import\s*\{\s*Request\s*,\s*Response\s*\}\s*from\s*["']express["'];?\s*\n/gm, '');
   jsContent = jsContent.replace(/import\s*\{\s*Response\s*,\s*Request\s*\}\s*from\s*["']express["'];?\s*\n/gm, '');
   jsContent = jsContent.replace(/import\s*\{\s*Request\s*\}\s*from\s*["']express["'];?\s*\n/gm, '');
   jsContent = jsContent.replace(/import\s*\{\s*Response\s*\}\s*from\s*["']express["'];?\s*\n/gm, '');
+  jsContent = jsContent.replace(/import\s*\{\s*NextFunction\s*\}\s*from\s*["']express["'];?\s*\n/gm, '');
 
   // Remove interface declarations
   // CRITICAL: Must have 'interface' keyword explicitly (not 'const' or other keywords)
@@ -72,20 +74,36 @@ export function stripTypeScript(content) {
   jsContent = jsContent.replace(/(\.\.\.\s*\w+)\s*:\s*[^,)]+/g, '$1');
   
   // Handle regular parameters with more precision
-  // Match parameter name followed by colon and type, but not property access
-  jsContent = jsContent.replace(/\(([^)]*)\)/g, (match, params) => {
-    // Skip if it's not a parameter list (e.g., empty parens or no colons)
+  // Strategy: Clean type annotations from parameter lists while avoiding object literals in function CALLS
+  
+  // 1. Function declarations: function name(params) {
+  jsContent = jsContent.replace(/function\s+\w+\s*\(([^)]*)\)/g, (match, params) => {
+    if (!params.includes(':')) return match;
+    // Skip if it has object literals (look for : followed by value, not type)
+    // Object literals have patterns like {key: value} while types have param: Type
+    const cleaned = params.split(',').map(p => p.replace(/:\s*[^,=)]+(?=[,)]|$)/, '')).join(',');
+    return match.replace(params, cleaned);
+  });
+  
+  // 2. Arrow functions: (params) => or (params) => {
+  // Be more specific: only skip if we see actual object literal patterns {key:value}
+  jsContent = jsContent.replace(/\(([^)]+)\)\s*=>/g, (match, params) => {
     if (!params.includes(':')) return match;
     
-    const cleanedParams = params
-      .split(',')
-      .map(param => {
-        // Remove type annotation (everything from : to end of param or = sign)
-        return param.replace(/:\s*[^,=]+/, '');
-      })
-      .join(',');
+    // Check if this looks like an object literal: has both { and } with content between
+    if (/\{[^}]+\}/.test(params)) return match;
     
-    return `(${cleanedParams})`;
+    const cleaned = params.split(',').map(p => p.replace(/:\s*[^,=)]+(?=[,)]|$)/, '')).join(',');
+    return `(${cleaned}) =>`;
+  });
+  
+  // 3. Method definitions in classes/objects: methodName(params) {
+  jsContent = jsContent.replace(/(\w+)\s*\(([^)]*)\)\s*\{/g, (match, name, params) => {
+    if (!params.includes(':')) return match;
+    // Skip if it looks like object destructuring in params
+    if (/\{[^}]+\}/.test(params)) return match;
+    const cleaned = params.split(',').map(p => p.replace(/:\s*[^,=)]+(?=[,)]|$)/, '')).join(',');
+    return `${name}(${cleaned}) {`;
   });
   
   // Remove return type annotations - IMPROVED VERSION
