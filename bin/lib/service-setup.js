@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import prompts from "prompts";
+import pc from "picocolors";
 import { execSync } from "child_process";
 import { fileURLToPath } from "url";
 
@@ -340,7 +341,7 @@ await connectDB();`
 
   // Install dependencies
   console.log(
-    `\n📦 Installing dependencies for ${serviceName || "project"}...\n`
+    pc.cyan(`\n📦 Installing dependencies for ${serviceName || "project"}...\n`)
   );
   
   let installSucceeded = false;
@@ -362,23 +363,23 @@ await connectDB();`
     installSucceeded = true;
     
     // Run format after successful install
-    console.log("\n🎨 Formatting code...\n");
+    console.log(pc.cyan("\n🎨 Formatting code...\n"));
     try {
       execSync("npm run format", { cwd: serviceRoot, stdio: "inherit" });
     } catch (formatError) {
-      console.warn("⚠️  Warning: Code formatting failed. You can run it manually later with: npm run format\n");
+      console.warn(pc.yellow("⚠️  Warning: Code formatting failed. You can run it manually later with: npm run format\n"));
     }
   } catch (error) {
-    console.error("\n⚠️  Warning: Some dependencies failed to install.");
-    console.error("This is usually due to native modules (like argon2) requiring build tools.\n");
-    console.error("💡 Solutions:");
-    console.error("   1. Install build tools: npm install --global windows-build-tools");
-    console.error("   2. Or switch to bcrypt (works better on Windows)");
-    console.error("   3. Or manually install later: cd " + (serviceName || res.sanitizedName) + " && npm install");
-    console.error("   4. Then run: npm run format\n");
+    console.error(pc.yellow("\n⚠️  Warning: Some dependencies failed to install."));
+    console.error(pc.yellow("This is usually due to native modules (like argon2) requiring build tools.\n"));
+    console.error(pc.cyan("💡 Solutions:"));
+    console.error(pc.dim("   1. Install build tools: npm install --global windows-build-tools"));
+    console.error(pc.dim("   2. Or switch to bcrypt (works better on Windows)"));
+    console.error(pc.dim("   3. Or manually install later: cd " + (serviceName || res.sanitizedName) + " && npm install"));
+    console.error(pc.dim("   4. Then run: npm run format\n"));
     
     // Don't exit - let the project be created anyway
-    console.log("⏭️  Continuing with project creation...\n");
+    console.log(pc.cyan("⏭️  Continuing with project creation...\n"));
   }
 
   return { deps, installSucceeded };

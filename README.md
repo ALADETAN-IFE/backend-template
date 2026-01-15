@@ -1,6 +1,20 @@
 # 🚀 Backend Template Generator
 
-A powerful CLI tool to generate production-ready Node.js + TypeScript backend applications with Express.js. Supports both monolith and microservice architectures with optional features like authentication, CORS, rate limiting, and more.
+A powerful CLI tool to generate production-ready Node.js backend applications with Express.js. Supports both **TypeScript** and **JavaScript**, with monolith and microservice architectures, and optional features like authentication, CORS, rate limiting, and more.
+
+---
+
+## ✨ Features
+
+- 🎯 **TypeScript & JavaScript Support** - Choose your preferred language
+- 🏗️ **Dual Architecture** - Monolith or Microservice
+- 🐳 **Docker Ready** - Containerized microservices
+- ⚡ **PM2 Support** - Process management for production
+- 🔐 **JWT Authentication** - Built-in auth with MongoDB
+- 🛡️ **Security First** - CORS, Helmet, Rate Limiting
+- 📝 **Professional Logging** - Morgan + Winston
+- 🎨 **Colored CLI** - Beautiful Vite-like terminal output
+- 📋 **Project Metadata** - Description, author, and keywords support
 
 ---
 
@@ -35,21 +49,36 @@ npx @ifecodes/backend-template my-project micro
 
 When you run the CLI, you'll be prompted to choose:
 
-### 1. **Project Type**
+### 1. **Language**
+
+- **TypeScript** (default) - Full type safety and modern tooling
+- **JavaScript** - Transpiled from TypeScript for simplicity
+
+### 2. **Project Metadata**
+
+- **Description** - Project description for package.json
+- **Author** - Your name or organization
+- **Keywords** - Comma-separated keywords for discoverability
+
+### 3. **Project Type**
+
 - **Monolith API** - Traditional single-server architecture
 - **Microservice** - Distributed services with API Gateway
 
-### 2. **Deployment Mode** (Microservices only)
+### 4. **Deployment Mode** (Microservices only)
+
 - **Docker** - Container-based deployment with docker-compose
 - **PM2** - Process manager for Node.js applications
 
-### 3. **Optional Features**
+### 5. **Optional Features**
+
 - ✅ **CORS** - Cross-Origin Resource Sharing
 - ✅ **Helmet** - Security headers middleware
 - ✅ **Rate Limiting** - API request throttling
 - ✅ **Morgan** - HTTP request logger
 
-### 4. **Authentication**
+### 6. **Authentication**
+
 - ✅ **JWT Authentication** with MongoDB
 - Choose between **bcrypt** (recommended for Windows) or **argon2** for password hashing
 
@@ -154,7 +183,7 @@ pm2 stop all
 ## 🛠 Tech Stack
 
 - **Runtime**: Node.js (v18+)
-- **Language**: TypeScript
+- **Language**: TypeScript or JavaScript
 - **Framework**: Express.js
 - **Database**: MongoDB (with Mongoose, if auth enabled)
 - **Authentication**: JWT + bcrypt/argon2
@@ -165,20 +194,46 @@ pm2 stop all
 
 ---
 
+## � TypeScript vs JavaScript
+
+This CLI generates **TypeScript** projects by default but fully supports **JavaScript** through intelligent transformation:
+
+### TypeScript (Default)
+
+- Full type safety and IntelliSense
+- Modern ECMAScript features
+- Compile-time error checking
+- Better tooling and refactoring support
+
+### JavaScript
+
+- Automatically transpiled from TypeScript templates
+- Type annotations removed for cleaner code
+- Dependencies adjusted (no @types packages)
+- Same functionality, simpler syntax
+
+**Note**: When selecting JavaScript, the CLI transforms the TypeScript template on-the-fly, ensuring you get a production-ready JavaScript project with all the same features.
+
+---
+
 ## 🌟 Features
 
 ### ✅ Smart Defaults
+
 - Auto-generates README with project-specific instructions
 - Creates `.env` from `.env.example` with default values
 - Configures TypeScript paths for clean imports (`@/config`, `@/utils`)
+- Project metadata (description, author, keywords) in package.json
 
 ### ✅ Microservice Architecture
+
 - **API Gateway** on port 4000 (single entry point)
 - **Service Discovery** - Automatically routes to correct service
 - **Shared Folder** - Common utilities across all services
 - **Health Checks** - Built-in monitoring endpoints
 
 ### ✅ Developer Experience
+
 - **Hot Reload** - Development server with nodemon
 - **ESLint** - Code quality enforcement
 - **Git Hooks** - Pre-commit linting with Husky
@@ -246,6 +301,7 @@ npx @ifecodes/backend-template
 ```
 
 The CLI will:
+
 - Create the new service
 - Update `docker-compose.yml` or `pm2.config.js`
 - Configure routing in the API Gateway

@@ -1,4 +1,5 @@
 import prompts from "prompts";
+import pc from "picocolors";
 import fs from "fs";
 import path from "path";
 
@@ -44,44 +45,44 @@ export const getProjectConfig = async () => {
     {
       type: isInMicroserviceProject || hasCliArgs || isCI ? null : "text",
       name: "name",
-      message: "Project name",
+      message: pc.cyan("Project name"),
       initial: "my-backend",
     },
     {
       type: isInMicroserviceProject || isCI ? null : "select",
       name: "language",
-      message: "Select language",
+      message: pc.cyan("Select language"),
       choices: [
-        { title: "TypeScript", value: "typescript" },
-        { title: "JavaScript", value: "javascript" },
+        { title: pc.green("TypeScript"), value: "typescript" },
+        { title: pc.yellow("JavaScript"), value: "javascript" },
       ],
       initial: 0,
     },
     {
       type: isInMicroserviceProject || hasCliArgs || isCI ? null : "text",
       name: "description",
-      message: "Project description (optional)",
+      message: pc.cyan("Project description") + pc.dim(" (optional)"),
       initial: "",
     },
     {
       type: isInMicroserviceProject || hasCliArgs || isCI ? null : "text",
       name: "author",
-      message: "Author (optional)",
+      message: pc.cyan("Author") + pc.dim(" (optional)"),
       initial: "",
     },
     {
       type: isInMicroserviceProject || hasCliArgs || isCI ? null : "text",
       name: "keywords",
-      message: "Keywords (comma-separated, optional)",
+      message: pc.cyan("Keywords") + pc.dim(" (comma-separated, optional)"),
       initial: "",
     },
     {
       type: isInMicroserviceProject || (hasCliArgs && cliProjectType) || isCI ? null : "select",
       name: "projectType",
-      message: "Project type",
+      message: pc.cyan("Project type"),
       choices: [
-        { title: "Monolith API", value: "monolith" },
-        { title: "Microservice", value: "microservice" },
+        { title: pc.blue("Monolith API"), value: "monolith" },
+        { title: pc.magenta("Microservice"), value: "microservice" },
       ],
     },
     {
@@ -92,46 +93,46 @@ export const getProjectConfig = async () => {
           ? "select"
           : null,
       name: "mode",
-      message: "Microservice setup",
+      message: pc.cyan("Microservice setup"),
       choices: [
-        { title: "With Docker", value: "docker" },
-        { title: "Without Docker", value: "nodocker" },
+        { title: pc.blue("With Docker 🐳"), value: "docker" },
+        { title: pc.yellow("Without Docker (PM2)"), value: "nodocker" },
       ],
     },
     {
       type: isInMicroserviceProject ? "text" : isCI ? null : "multiselect",
       name: isInMicroserviceProject ? "serviceName" : "features",
       message: isInMicroserviceProject
-        ? "New service name (e.g., user-service, order-service)"
-        : "Select features",
+        ? pc.cyan("New service name") + pc.dim(" (e.g., user-service, order-service)")
+        : pc.cyan("Select features"),
       choices: isInMicroserviceProject
         ? undefined
         : [
-            { title: "CORS", value: "cors" },
-            { title: "Rate Limiter", value: "rate-limit" },
-            { title: "Helmet", value: "helmet" },
-            { title: "Morgan (HTTP logger)", value: "morgan" },
+            { title: pc.blue("CORS"), value: "cors" },
+            { title: pc.yellow("Rate Limiter"), value: "rate-limit" },
+            { title: pc.green("Helmet"), value: "helmet" },
+            { title: pc.magenta("Morgan (HTTP logger)"), value: "morgan" },
           ],
     },
     {
       type: isCI ? null : "toggle",
       name: "auth",
       message: isInMicroserviceProject
-        ? "Include authentication in this service?"
-        : "Include authentication system?",
+        ? pc.cyan("Include authentication in this service?")
+        : pc.cyan("Include authentication system?"),
       initial: true,
-      active: "yes",
-      inactive: "no",
+      active: pc.green("yes"),
+      inactive: pc.red("no"),
     },
     {
       type: isInMicroserviceProject && !isCI ? "multiselect" : null,
       name: "features",
-      message: "Select features for this service",
+      message: pc.cyan("Select features for this service"),
       choices: [
-        { title: "Rate Limiter", value: "rate-limit" },
-        { title: "Helmet", value: "helmet" },
-        { title: "Morgan (HTTP logger)", value: "morgan" },
-        { title: "CORS", value: "cors" },
+        { title: pc.yellow("Rate Limiter"), value: "rate-limit" },
+        { title: pc.green("Helmet"), value: "helmet" },
+        { title: pc.magenta("Morgan (HTTP logger)"), value: "morgan" },
+        { title: pc.blue("CORS"), value: "cors" },
       ],
     },
   ]);
@@ -168,8 +169,8 @@ export const getProjectConfig = async () => {
       ? "docker"
       : "nodocker";
 
-    console.log(`\n📁 Detected existing microservice project: ${sanitizedName}`);
-    console.log(`Mode: ${mode}\n`);
+    console.log(pc.cyan(`\n📁 Detected existing microservice project: ${sanitizedName}`));
+    console.log(pc.dim(`Mode: ${mode}\n`));
   } else {
     sanitizedName = res.name.replace(/\s+/g, "-");
     target = path.resolve(process.cwd(), sanitizedName);

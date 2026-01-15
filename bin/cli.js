@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { execSync } from "child_process";
 import { fileURLToPath } from "url";
+import pc from "picocolors";
 import { getProjectConfig } from "./lib/prompts.js";
 import { setupService } from "./lib/service-setup.js";
 import { generateReadme } from "./lib/readme-generator.js";
@@ -43,15 +44,15 @@ if (isInMicroserviceProject) {
 // Validate and prepare project
 if (!isInMicroserviceProject && config.projectType === "microservice") {
   if (isExistingProject) {
-    console.error(`\n❌ Error: Project '${sanitizedName}' already exists!`);
+    console.error(`\n${pc.red("❌ Error:")} Project ${pc.bold(sanitizedName)} already exists!`);
     process.exit(1);
   }
   console.log(
-    `\n🏗️  Creating microservices: ${servicesToCreate.join(", ")}...\n`
+    `\n${pc.cyan("🏗️  Creating microservices:")} ${pc.bold(servicesToCreate.join(", "))}...\n`
   );
 } else if (!isInMicroserviceProject && config.projectType === "monolith") {
   if (isExistingProject) {
-    console.error(`\n❌ Error: Project '${sanitizedName}' already exists!`);
+    console.error(`\n${pc.red("❌ Error:")} Project ${pc.bold(sanitizedName)} already exists!`);
     process.exit(1);
   }
   fs.cpSync(base, target, { recursive: true });
@@ -59,11 +60,11 @@ if (!isInMicroserviceProject && config.projectType === "microservice") {
   // Transform to JavaScript if selected
   if (config.language === "javascript") {
     // console.log("\n🔄 Converting TypeScript to JavaScript...\n");
-    console.log("\n⚙️  Setting up JavaScript project...\n");
+    console.log(`\n${pc.cyan("⚙️  Setting up JavaScript project...")}\n`);
     transformToJavaScript(target);
   }
 } else if (isInMicroserviceProject) {
-  console.log(`\n🏗️  Adding service: ${servicesToCreate[0]}...\n`);
+  console.log(`\n${pc.cyan("🏗️  Adding service:")} ${pc.bold(servicesToCreate[0])}...\n`);
 }
 
 // Helper function to transform TypeScript project to JavaScript
@@ -163,7 +164,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
   if (!isInMicroserviceProject) {
     const sharedDir = path.join(target, "shared");
     if (!fs.existsSync(sharedDir)) {
-      console.log(`\n📦 Creating shared folder for config and utils...`);
+      console.log(`\n${pc.cyan("📦 Creating shared folder for config and utils...")}`);
       fs.mkdirSync(sharedDir, { recursive: true });
 
       // Copy config and utils from base template
@@ -279,7 +280,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
 
 // Generate README.md
 if (!isInMicroserviceProject) {
-  console.log("\n📝 Generating README.md...\n");
+  console.log(`\n${pc.cyan("📝 Generating README.md...")}\n`);
   const readmeContent = generateReadme(config);
   fs.writeFileSync(path.join(target, "README.md"), readmeContent);
   
@@ -306,7 +307,7 @@ if (!isInMicroserviceProject) {
   }
   
   // Generate .env from .env.example for each service or root
-  console.log("📄 Setting up environment files...\n");
+  console.log(`${pc.cyan("📄 Setting up environment files...")}\n`);
   if (config.projectType === "microservice") {
     const servicesDir = path.join(target, "services");
     const allServices = fs.readdirSync(servicesDir).filter((f) => 
@@ -350,14 +351,14 @@ if (!isInMicroserviceProject) {
   } else if (config.projectType === "monolith") {
     // Only setup Husky if installation succeeded
     if (config.installSucceeded) {
-      console.log("\n🔧 Setting up Husky...\n");
+      console.log(`\n${pc.cyan("🔧 Setting up Husky...")}\n`);
       try {
         execSync("npm run prepare", { cwd: target, stdio: "inherit" });
       } catch (error) {
-        console.log("\n⚠️  Husky setup failed (run 'npm run prepare' manually after fixing dependencies)\n");
+        console.log(`\n${pc.yellow("⚠️  Husky setup failed")} ${pc.dim("(run 'npm run prepare' manually after fixing dependencies)")}\n`);
       }
     } else {
-      console.log("\n⚠️  Husky setup skipped (run 'npm install && npm run prepare' to set up git hooks)\n");
+      console.log(`\n${pc.yellow("⚠️  Husky setup skipped")} ${pc.dim("(run 'npm install && npm run prepare' to set up git hooks)")}\n`);
     }
   }
 }
@@ -371,27 +372,27 @@ const allServices = fs.existsSync(servicesDir)
   : servicesToCreate;
 
 if (isInMicroserviceProject) {
-  console.log(`\n✅ Service '${servicesToCreate[0]}' added successfully!`);
-  console.log(`\n📦 All services: ${allServices.join(", ")}`);
-  console.log(`\n💡 Next steps:`);
+  console.log(`\n${pc.green("✅ Service")} ${pc.bold(servicesToCreate[0])} ${pc.green("added successfully!")}`);
+  console.log(`\n${pc.cyan("📦 All services:")} ${allServices.join(", ")}`);
+  console.log(`\n${pc.blue("💡 Next steps:")}`);
   console.log(
     mode === "docker"
-      ? `   1. Start services: docker-compose up`
-      : `   1. Start services: pm2 start pm2.config.js`
+      ? `   ${pc.dim("1.")} Start services: ${pc.bold("docker-compose up")}`
+      : `   ${pc.dim("1.")} Start services: ${pc.bold("pm2 start pm2.config.js")}`
   );
 } else if (config.projectType === "microservice") {
-  console.log("\n✅ Backend created successfully!");
-  console.log(`\n📦 Created services: ${servicesToCreate.join(", ")}`);
-  console.log(`\n💡 Next steps:`);
-  console.log(`   1. cd ${sanitizedName}`);
+  console.log(`\n${pc.green("✅ Backend created successfully!")}`);
+  console.log(`\n${pc.cyan("📦 Created services:")} ${servicesToCreate.join(", ")}`);
+  console.log(`\n${pc.blue("💡 Next steps:")}`);
+  console.log(`   ${pc.dim("1.")} cd ${pc.bold(sanitizedName)}`);
   console.log(
     mode === "docker"
-      ? `   2. Start services: docker-compose up`
-      : `   2. Start services: pm2 start pm2.config.js`
+      ? `   ${pc.dim("2.")} Start services: ${pc.bold("docker-compose up")}`
+      : `   ${pc.dim("2.")} Start services: ${pc.bold("pm2 start pm2.config.js")}`
   );
 } else {
-  console.log("\n✅ Backend created successfully!");
-  console.log(`\n💡 Next steps:`);
-  console.log(`   1. cd ${sanitizedName}`);
-  console.log(`   2. npm run dev`);
+  console.log(`\n${pc.green("✅ Backend created successfully!")}`);
+  console.log(`\n${pc.blue("💡 Next steps:")}`);
+  console.log(`   ${pc.dim("1.")} cd ${pc.bold(sanitizedName)}`);
+  console.log(`   ${pc.dim("2.")} npm run dev`);
 }

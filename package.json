@@ -1,7 +1,7 @@
 {
   "name": "@ifecodes/backend-template",
   "version": "1.0.10",
-  "description": "Production-ready Express + TypeScript backend generator with optional features and microservice support",
+  "description": "Production-ready Express + TypeScript/JavaScript backend generator with optional features and microservice support",
   "bin": {
     "ifecodes-template": "bin/cli.js"
   },
@@ -29,6 +29,7 @@
     "template",
     "boilerplate",
     "typescript",
+    "javascript",
     "backend",
     "express",
     "microservice",
@@ -39,11 +40,13 @@
     "docker",
     "pm2",
     "jwt",
-    "authentication"
+    "authentication",
+    "colored-cli"
   ],
   "license": "MIT",
   "author": "Aladetan Fortune Ifeloju (IfeCodes) <ifecodes01@gmail.com>",
   "dependencies": {
+    "picocolors": "^1.1.1",
     "prompts": "^2.4.2"
   },
   "engines": {
