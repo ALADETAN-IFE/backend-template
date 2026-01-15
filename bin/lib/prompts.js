@@ -137,6 +137,12 @@ export const getProjectConfig = async () => {
     },
   ]);
 
+  // Handle cancelled prompts (user pressed Ctrl+C or closed the prompt)
+  if (!res || !res.name) {
+    console.log(pc.yellow("\n❌ Operation cancelled by user."));
+    process.exit(0);
+  }
+
   // Set defaults for CI/non-interactive mode
   if (isCI) {
     res.features = res.features || [];

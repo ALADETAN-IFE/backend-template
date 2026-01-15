@@ -5,6 +5,19 @@ import pc from "picocolors";
 import { execSync } from "child_process";
 import { fileURLToPath } from "url";
 
+// Helper function to get the correct file extension (.ts or .js)
+function getFileExtension(dir) {
+  // Check if .ts files exist, otherwise use .js
+  const sampleFiles = ['src/app.ts', 'src/server.ts', 'src/routes.ts'];
+  for (const file of sampleFiles) {
+    const tsPath = path.join(dir, file);
+    if (fs.existsSync(tsPath)) return 'ts';
+    const jsPath = path.join(dir, file.replace('.ts', '.js'));
+    if (fs.existsSync(jsPath)) return 'js';
+  }
+  return 'ts'; // default to ts
+}
+
 export const setupService = async (
   res,
   serviceName,
@@ -18,6 +31,9 @@ export const setupService = async (
   let devDeps = [];
   let v1Imports = [];
   let v1Routes = [];
+  
+  // Detect file extension (ts or js)
+  const ext = getFileExtension(serviceRoot);
 
   // Special handling for gateway service
   if (serviceName === "gateway") {
@@ -25,8 +41,8 @@ export const setupService = async (
     deps.push(...gatewayModule.gatewayDeps);
 
     // Copy gateway-specific files
-    const gatewayAppPath = path.join(serviceRoot, "src/app.ts");
-    const gatewayServerPath = path.join(serviceRoot, "src/server.ts");
+    const gatewayAppPath = path.join(serviceRoot, `src/app.${ext}`);
+    const gatewayServerPath = path.join(serviceRoot, `src/server.${ext}`);
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
     const gatewayAppContent = fs.readFileSync(
@@ -46,7 +62,7 @@ export const setupService = async (
     fs.writeFileSync(gatewayServerPath, gatewayServerContent);
 
     // Remove unnecessary files for gateway
-    const routesPath = path.join(serviceRoot, "src/routes.ts");
+    const routesPath = path.join(serviceRoot, `src/routes.${ext}`);
     const modulesPath = path.join(serviceRoot, "src/modules");
     const middlewaresPath = path.join(serviceRoot, "src/middlewares");
 
@@ -125,15 +141,15 @@ export const setupService = async (
       v1Routes.push(baseAuth.middleware);
     }
 
-    // Update app.ts
-    const appPath = path.join(serviceRoot, "src/app.ts");
+    // Update app file
+    const appPath = path.join(serviceRoot, `src/app.${ext}`);
     let content = fs.readFileSync(appPath, "utf8");
     content = content.replace("/*__IMPORTS__*/", imports.join("\n"));
     content = content.replace("/*__MIDDLEWARE__*/", middlewares.join("\n"));
     fs.writeFileSync(appPath, content);
 
     // Update root endpoint middleware with project info
-    const rootMiddlewarePath = path.join(serviceRoot, "src/middlewares/root.middleware.ts");
+    const rootMiddlewarePath = path.join(serviceRoot, `src/middlewares/root.middleware.${ext}`);
     if (fs.existsSync(rootMiddlewarePath)) {
       let rootContent = fs.readFileSync(rootMiddlewarePath, "utf8");
       rootContent = rootContent.replace("/*__PROJECT_NAME__*/", serviceName || res.sanitizedName);
@@ -152,9 +168,9 @@ export const setupService = async (
       fs.writeFileSync(rootMiddlewarePath, rootContent);
     }
 
-    // Update v1 index.ts if needed
+    // Update v1 index file if needed
     if (v1Imports.length || v1Routes.length) {
-      const v1IndexPath = path.join(serviceRoot, "src/modules/v1/index.ts");
+      const v1IndexPath = path.join(serviceRoot, `src/modules/v1/index.${ext}`);
       let v1Content = fs.readFileSync(v1IndexPath, "utf8");
 
       const lastImportIndex = v1Content.lastIndexOf("import");
@@ -175,8 +191,8 @@ export const setupService = async (
       fs.writeFileSync(v1IndexPath, v1Content);
     }
     
-    // Update env.ts to conditionally include ALLOWED_ORIGIN and MONGO_URI
-    const envPath = path.join(serviceRoot, "src/config/env.ts");
+    // Update env file to conditionally include ALLOWED_ORIGIN and MONGO_URI
+    const envPath = path.join(serviceRoot, `src/config/env.${ext}`);
     if (fs.existsSync(envPath)) {
       let envContent = fs.readFileSync(envPath, "utf8");
       
@@ -220,8 +236,8 @@ export const setupService = async (
       fs.writeFileSync(envPath, envContent);
     }
     
-    // Update server.ts to connect to DB if auth is enabled
-    const serverPath = path.join(serviceRoot, "src/server.ts");
+    // Update server file to connect to DB if auth is enabled
+    const serverPath = path.join(serviceRoot, `src/server.${ext}`);
     if (fs.existsSync(serverPath)) {
       let serverContent = fs.readFileSync(serverPath, "utf8");
       
