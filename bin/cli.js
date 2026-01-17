@@ -296,7 +296,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
         "strict": true,
         "baseUrl": ".",
         "paths": {
-          "@/shared/*": ["shared/*"]
+          "@/*": ["./*"]
         }
       },
       "include": [],
