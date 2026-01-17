@@ -113,17 +113,22 @@ my-backend/
 ```
 my-project/
 ├── shared/              # Shared utilities across services
-│   ├── config/         # Database, environment configs
+│   ├── config/         # Environment configs (db.ts only if auth enabled)
 │   └── utils/          # Logger, error handlers
 ├── services/
 │   ├── gateway/        # API Gateway (port 4000)
 │   ├── health-service/ # Health checks (port 4001)
-│   └── auth-service/   # Authentication (port 4002)
+│   └── auth-service/   # Authentication (port 4002, if enabled)
 ├── docker-compose.yml  # Docker setup (if selected)
 ├── pm2.config.js       # PM2 setup (if selected)
+├── .env                # Root environment variables
+├── .gitignore          # Git ignore (includes .env and node_modules)
+├── tsconfig.json       # Root TypeScript config with project references
 ├── .husky/             # Git hooks
 └── package.json        # Root package.json
 ```
+
+**Note**: Each microservice does NOT have its own `.env` file. Environment variables are managed at the root level through `docker-compose.yml` or `pm2.config.js`.
 
 ---
 
@@ -246,10 +251,10 @@ This CLI generates **TypeScript** projects by default but fully supports **JavaS
 ### Monolith
 
 ```
-GET  /              - API information
-GET  /v1/health     - Health check
-POST /v1/auth/register - Register user (if auth enabled)
-POST /v1/auth/login    - Login user (if auth enabled)
+GET  /                  - API information
+GET  /api/v1/health     - Health check
+POST /api/v1/auth/register - Register user (if auth enabled)
+POST /api/v1/auth/login    - Login user (if auth enabled)
 ```
 
 ### Microservice
@@ -257,21 +262,39 @@ POST /v1/auth/login    - Login user (if auth enabled)
 All requests go through the API Gateway at `http://localhost:4000`
 
 ```
-GET  /health        - Health service
-POST /auth/register - Auth service (if enabled)
-POST /auth/login    - Auth service (if enabled)
+GET  /health            - Gateway health check
+GET  /api/v1/health     - Health service check
+POST /api/v1/auth/register - Auth service (if enabled)
+POST /api/v1/auth/login    - Auth service (if enabled)
 ```
 
 ---
 
 ## 🔧 Environment Variables
 
-### Basic Setup
+### Monolith
 
 ```env
 PORT=4000
 NODE_ENV=development
 ```
+
+### Microservice (Root .env)
+
+```env
+NODE_ENV=development
+
+# Gateway Service
+GATEWAY_PORT=4000
+
+# Health Service  
+HEALTH_SERVICE_PORT=4001
+
+# Auth Service (if enabled)
+AUTH_SERVICE_PORT=4002
+```
+
+**Note**: Microservices use environment variables from `docker-compose.yml` or `pm2.config.js`. Individual services don't have `.env` files.
 
 ### With CORS
 

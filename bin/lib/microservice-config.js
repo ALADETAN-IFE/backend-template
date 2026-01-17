@@ -6,38 +6,63 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export const generateDockerCompose = (target, allServices) => {
   const dockerCompose = {
-    version: "3.8",
     services: {},
   };
 
+  // Build environment variables map for all services
+  const allServicePorts = allServices.map((service, index) => {
+    const isGateway = service === "gateway";
+    const port = isGateway ? 4000 : 4001 + allServices.filter((s, i) => s !== "gateway" && i < index).length;
+    const envVarName = `${service.toUpperCase().replace(/-/g, "_")}_PORT`;
+    return { service, port, envVarName };
+  });
+
   for (const serviceName of allServices) {
     // Gateway runs on 4000, other services start from 4001
-    const isGateway = serviceName === "gateway";
-    const serviceIndex = allServices.indexOf(serviceName);
-    const port = isGateway ? 4000 : 4001 + allServices.filter((s, i) => s !== "gateway" && i < serviceIndex).length;
+    const serviceInfo = allServicePorts.find(s => s.service === serviceName);
+    const port = serviceInfo.port;
+    const envVarName = serviceInfo.envVarName;
+    
+    // Build environment variables array - include all service ports
+    const environmentVars = [
+      `NODE_ENV=\${NODE_ENV:-development}`,
+      ...allServicePorts.map(s => `${s.envVarName}=\${${s.envVarName}:-${s.port}}`)
+    ];
     
     dockerCompose.services[serviceName] = {
-      build: `./services/${serviceName}`,
+      build: {
+        context: `./services/${serviceName}`,
+        dockerfile: "Dockerfile"
+      },
+      image: `${serviceName}:latest`,
+      container_name: serviceName,
       ports: [
-        `\${${serviceName
-          .toUpperCase()
-          .replace(/-/g, "_")}_PORT:-${port}}:${isGateway ? 4000 : 4000}`,
+        `\${${envVarName}:-${port}}:\${${envVarName}:-${port}}`,
       ],
-      environment: [`NODE_ENV=\${NODE_ENV:-development}`],
-      volumes: [`./services/${serviceName}:/app`, `/app/node_modules`],
+      environment: environmentVars,
+      volumes: [
+        `./services/${serviceName}:/app`,
+        `./shared:/app/shared`,
+        `/app/node_modules`
+      ],
     };
   }
 
   fs.writeFileSync(
     path.join(target, "docker-compose.yml"),
-    `version: "${dockerCompose.version}"\nservices:\n` +
+    `services:\n` +
       Object.entries(dockerCompose.services)
         .map(
           ([name, config]) =>
             `  ${name}:\n` +
-            `    build: ${config.build}\n` +
+            `    build:\n` +
+            `      context: ${config.build.context}\n` +
+            `      dockerfile: ${config.build.dockerfile}\n` +
+            `    image: ${config.image}\n` +
+            `    container_name: ${config.container_name}\n` +
             `    ports:\n      - "${config.ports[0]}"\n` +
-            `    environment:\n      - ${config.environment[0]}\n` +
+            `    environment:\n` +
+            config.environment.map((e) => `      - ${e}`).join("\n") + "\n" +
             `    volumes:\n` +
             config.volumes.map((v) => `      - ${v}`).join("\n")
         )
@@ -84,6 +109,25 @@ export const copyDockerfile = (target, servicesToCreate) => {
     );
     if (!fs.existsSync(serviceDockerfile)) {
       fs.copyFileSync(dockerfilePath, serviceDockerfile);
+    }
+  }
+};
+
+export const copyDockerignore = (target, servicesToCreate) => {
+  const dockerignorePath = path.join(
+    __dirname,
+    "../../template/microservice/docker/.dockerignore"
+  );
+  
+  for (const serviceName of servicesToCreate) {
+    const serviceDockerignore = path.join(
+      target,
+      "services",
+      serviceName,
+      ".dockerignore"
+    );
+    if (!fs.existsSync(serviceDockerignore)) {
+      fs.copyFileSync(dockerignorePath, serviceDockerignore);
     }
   }
 };

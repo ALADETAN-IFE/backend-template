@@ -86,16 +86,16 @@ export const generateReadme = (config, serviceName = null) => {
   
   // Environment Variables
   readme += `3. Set up environment variables\n`;
-  readme += `\`\`\`bash\n`;
   if (isMicroservice) {
-    readme += `# Copy .env.example to .env in each service\n`;
-    readme += `cp services/gateway/.env.example services/gateway/.env\n`;
-    readme += `cp services/health-service/.env.example services/health-service/.env\n`;
-    if (auth) readme += `cp services/auth-service/.env.example services/auth-service/.env\n`;
+    readme += `\`\`\`bash\n`;
+    readme += `# Environment variables are configured in docker-compose.yml or pm2.config.js\n`;
+    readme += `# No .env files needed for individual services\n`;
+    readme += `\`\`\`\n\n`;
   } else {
+    readme += `\`\`\`bash\n`;
     readme += `cp .env.example .env\n`;
+    readme += `\`\`\`\n\n`;
   }
-  readme += `\`\`\`\n\n`;
   
   if (auth) {
     readme += `4. Configure your MongoDB connection and JWT secret in the \`.env\` file${isMicroservice ? "s" : ""}\n\n`;

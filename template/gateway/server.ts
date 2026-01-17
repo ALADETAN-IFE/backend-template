@@ -1,9 +1,9 @@
 import http from "http";
 import app from "./app";
-import { logger } from "@/utils";
-import { ENV } from "@/config";
+import { logger } from "@/shared/utils";
+import { ENV } from "@/shared/config";
 
-const PORT = ENV.PORT || 4000;
+const PORT = ENV.GATEWAY_PORT || 4000;
 
 const server = http.createServer(app);
 

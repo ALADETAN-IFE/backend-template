@@ -7,7 +7,7 @@ const router = Router();
 // Root endpoint
 router.get("/", rootHandler);
 
-router.use("/", modulesRouter);
+router.use("/api", modulesRouter);
 
 // 404 handler - must be last
 router.use(notFound);

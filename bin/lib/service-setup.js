@@ -8,14 +8,14 @@ import { fileURLToPath } from "url";
 // Helper function to get the correct file extension (.ts or .js)
 function getFileExtension(dir) {
   // Check if .ts files exist, otherwise use .js
-  const sampleFiles = ['src/app.ts', 'src/server.ts', 'src/routes.ts'];
+  const sampleFiles = ["src/app.ts", "src/server.ts", "src/routes.ts"];
   for (const file of sampleFiles) {
     const tsPath = path.join(dir, file);
-    if (fs.existsSync(tsPath)) return 'ts';
-    const jsPath = path.join(dir, file.replace('.ts', '.js'));
-    if (fs.existsSync(jsPath)) return 'js';
+    if (fs.existsSync(tsPath)) return "ts";
+    const jsPath = path.join(dir, file.replace(".ts", ".js"));
+    if (fs.existsSync(jsPath)) return "js";
   }
-  return 'ts'; // default to ts
+  return "ts"; // default to ts
 }
 
 export const setupService = async (
@@ -23,7 +23,8 @@ export const setupService = async (
   serviceName,
   serviceRoot,
   shouldIncludeAuth,
-  allServices = []
+  allServices = [],
+  skipInstall = false
 ) => {
   let imports = [];
   let middlewares = [];
@@ -31,7 +32,7 @@ export const setupService = async (
   let devDeps = [];
   let v1Imports = [];
   let v1Routes = [];
-  
+
   // Detect file extension (ts or js)
   const ext = getFileExtension(serviceRoot);
 
@@ -47,15 +48,16 @@ export const setupService = async (
 
     const gatewayAppContent = fs.readFileSync(
       path.join(__dirname, "../../template/gateway/app.ts"),
-      "utf8"
+      "utf8",
     );
     const gatewayServerContent = fs.readFileSync(
       path.join(__dirname, "../../template/gateway/server.ts"),
-      "utf8"
+      "utf8",
     );
 
-    // Generate routes for all services
-    const routes = gatewayModule.generateGatewayRoutes(allServices);
+    // Generate routes for all services with mode (docker or nodocker)
+    const mode = res.mode || "docker";
+    const routes = gatewayModule.generateGatewayRoutes(allServices, mode);
     const finalAppContent = gatewayAppContent.replace("/*__ROUTES__*/", routes);
 
     fs.writeFileSync(gatewayAppPath, finalAppContent);
@@ -87,9 +89,8 @@ export const setupService = async (
 
     // Add authentication (only for monolith or auth-service)
     if (shouldIncludeAuth && res.auth) {
-      const baseAuth = await import(
-        "../../template/features/auth/base/inject.js"
-      );
+      const baseAuth =
+        await import("../../template/features/auth/base/inject.js");
       deps.push(...baseAuth.deps);
       if (baseAuth.devDeps) {
         devDeps.push(...baseAuth.devDeps);
@@ -108,17 +109,19 @@ export const setupService = async (
           serviceName ? ` for ${serviceName}` : ""
         }`,
         choices: [
-          { 
-            title: process.platform === "win32" 
-              ? "bcrypt (recommended for Windows)" 
-              : "argon2 (recommended)", 
-            value: process.platform === "win32" ? "bcrypt" : "argon2" 
+          {
+            title:
+              process.platform === "win32"
+                ? "bcrypt (recommended for Windows)"
+                : "argon2 (recommended)",
+            value: process.platform === "win32" ? "bcrypt" : "argon2",
           },
-          { 
-            title: process.platform === "win32" 
-              ? "argon2 (requires build tools)" 
-              : "bcrypt", 
-            value: process.platform === "win32" ? "argon2" : "bcrypt" 
+          {
+            title:
+              process.platform === "win32"
+                ? "argon2 (requires build tools)"
+                : "bcrypt",
+            value: process.platform === "win32" ? "argon2" : "bcrypt",
           },
         ],
       });
@@ -149,22 +152,31 @@ export const setupService = async (
     fs.writeFileSync(appPath, content);
 
     // Update root endpoint middleware with project info
-    const rootMiddlewarePath = path.join(serviceRoot, `src/middlewares/root.middleware.${ext}`);
+    const rootMiddlewarePath = path.join(
+      serviceRoot,
+      `src/middlewares/root.middleware.${ext}`,
+    );
     if (fs.existsSync(rootMiddlewarePath)) {
       let rootContent = fs.readFileSync(rootMiddlewarePath, "utf8");
-      rootContent = rootContent.replace("/*__PROJECT_NAME__*/", serviceName || res.sanitizedName);
-      rootContent = rootContent.replace("/*__PROJECT_TYPE__*/", res.projectType);
-      
+      rootContent = rootContent.replace(
+        "/*__PROJECT_NAME__*/",
+        serviceName || res.sanitizedName,
+      );
+      rootContent = rootContent.replace(
+        "/*__PROJECT_TYPE__*/",
+        res.projectType,
+      );
+
       // Add auth endpoint if auth is enabled
       if (shouldIncludeAuth && res.auth) {
         rootContent = rootContent.replace(
           "/*__AUTH_ENDPOINT__*/",
-          'auth: "/v1/auth",'
+          'auth: "/v1/auth",',
         );
       } else {
         rootContent = rootContent.replace("/*__AUTH_ENDPOINT__*/", "");
       }
-      
+
       fs.writeFileSync(rootMiddlewarePath, rootContent);
     }
 
@@ -190,106 +202,117 @@ export const setupService = async (
 
       fs.writeFileSync(v1IndexPath, v1Content);
     }
-    
+
     // Update env file to conditionally include ALLOWED_ORIGIN and MONGO_URI
     const envPath = path.join(serviceRoot, `src/config/env.${ext}`);
     if (fs.existsSync(envPath)) {
       let envContent = fs.readFileSync(envPath, "utf8");
-      
+
       // Import ENV in app.ts if CORS is selected
       if (res.features && res.features.includes("cors")) {
         let appContent = fs.readFileSync(appPath, "utf8");
         if (!appContent.includes("import { ENV } from")) {
           appContent = appContent.replace(
             "/*__IMPORTS__*/",
-            "import { ENV } from '@/config';\n/*__IMPORTS__*/"
+            "import { ENV } from '@/config';\n/*__IMPORTS__*/",
           );
           fs.writeFileSync(appPath, appContent);
         }
       }
-      
+
       // Add ALLOWED_ORIGIN if CORS is selected
       if (res.features && res.features.includes("cors")) {
         envContent = envContent.replace(
           "/*__ALLOWED_ORIGIN__*/",
-          'ALLOWED_ORIGIN: process.env.ALLOWED_ORIGIN!,'
+          "ALLOWED_ORIGIN: process.env.ALLOWED_ORIGIN!,",
         );
       } else {
         envContent = envContent.replace("/*__ALLOWED_ORIGIN__*/", "");
       }
-      
+
       // Add MONGO_URI if auth is enabled
       if (shouldIncludeAuth && res.auth) {
         envContent = envContent.replace(
           "/*__MONGO_URI__*/",
-          'MONGO_URI: process.env.MONGO_URI!,'
+          "MONGO_URI: process.env.MONGO_URI!,",
         );
         envContent = envContent.replace(
           "/*__JWT_SECRET__*/",
-          'JWT_SECRET: process.env.JWT_SECRET!,'
+          "JWT_SECRET: process.env.JWT_SECRET!,",
         );
       } else {
         envContent = envContent.replace("/*__MONGO_URI__*/", "");
         envContent = envContent.replace("/*__JWT_SECRET__*/", "");
       }
-      
+
       fs.writeFileSync(envPath, envContent);
     }
-    
+
     // Update server file to connect to DB if auth is enabled
     const serverPath = path.join(serviceRoot, `src/server.${ext}`);
     if (fs.existsSync(serverPath)) {
       let serverContent = fs.readFileSync(serverPath, "utf8");
-      
+
       if (shouldIncludeAuth && res.auth) {
         serverContent = serverContent.replace(
           "/*__DB_IMPORT__*/",
-          'import { connectDB } from "./config";'
+          'import { connectDB } from "./config";',
         );
         serverContent = serverContent.replace(
           "/*__DB_CONNECT__*/",
           `// Connect to MongoDB
-await connectDB();`
+await connectDB();`,
         );
       } else {
         serverContent = serverContent.replace("/*__DB_IMPORT__*/", "");
         serverContent = serverContent.replace("/*__DB_CONNECT__*/", "");
       }
-      
+
       fs.writeFileSync(serverPath, serverContent);
     }
-    
-    // Update .env.example to conditionally include environment variables
-    const envExamplePath = path.join(serviceRoot, ".env.example");
-    if (fs.existsSync(envExamplePath)) {
-      let envExampleContent = fs.readFileSync(envExamplePath, "utf8");
-      
-      // Add ALLOWED_ORIGIN if CORS is selected
-      if (res.features && res.features.includes("cors")) {
-        envExampleContent = envExampleContent.replace(
-          "/*__ALLOWED_ORIGIN_ENV__*/",
-          'ALLOWED_ORIGIN=http://localhost:3000'
-        );
-      } else {
-        envExampleContent = envExampleContent.replace("/*__ALLOWED_ORIGIN_ENV__*/", "");
+
+    // Update .env.example to conditionally include environment variables (only for monolith)
+    if (res.projectType !== "microservice") {
+      const envExamplePath = path.join(serviceRoot, ".env.example");
+      if (fs.existsSync(envExamplePath)) {
+        let envExampleContent = fs.readFileSync(envExamplePath, "utf8");
+
+        // Add ALLOWED_ORIGIN if CORS is selected
+        if (res.features && res.features.includes("cors")) {
+          envExampleContent = envExampleContent.replace(
+            "/*__ALLOWED_ORIGIN_ENV__*/",
+            "ALLOWED_ORIGIN=http://localhost:3000",
+          );
+        } else {
+          envExampleContent = envExampleContent.replace(
+            "/*__ALLOWED_ORIGIN_ENV__*/",
+            "",
+          );
+        }
+
+        // Add MONGO_URI and JWT_SECRET if auth is enabled
+        if (shouldIncludeAuth && res.auth) {
+          envExampleContent = envExampleContent.replace(
+            "/*__MONGO_URI_ENV__*/",
+            "MONGO_URI=mongodb://localhost:27017/your-database-name",
+          );
+          envExampleContent = envExampleContent.replace(
+            "/*__JWT_SECRET_ENV__*/",
+            "JWT_SECRET=your-super-secret-jwt-key-change-this-in-production",
+          );
+        } else {
+          envExampleContent = envExampleContent.replace(
+            "/*__MONGO_URI_ENV__*/",
+            "",
+          );
+          envExampleContent = envExampleContent.replace(
+            "/*__JWT_SECRET_ENV__*/",
+            "",
+          );
+        }
+
+        fs.writeFileSync(envExamplePath, envExampleContent);
       }
-      
-      // Add MONGO_URI and JWT_SECRET if auth is enabled
-      if (shouldIncludeAuth && res.auth) {
-        envExampleContent = envExampleContent.replace(
-          "/*__MONGO_URI_ENV__*/",
-          'MONGO_URI=mongodb://localhost:27017/your-database-name'
-        );
-        envExampleContent = envExampleContent.replace(
-          "/*__JWT_SECRET_ENV__*/",
-          'JWT_SECRET=your-super-secret-jwt-key-change-this-in-production'
-        );
-      } else {
-        envExampleContent = envExampleContent.replace("/*__MONGO_URI_ENV__*/", "");
-        envExampleContent = envExampleContent.replace("/*__JWT_SECRET_ENV__*/", "");
-      }
-      
-      fs.writeFileSync(envExamplePath, envExampleContent);
     }
   } // End of else block for non-gateway services
 
@@ -297,28 +320,71 @@ await connectDB();`
   if (res.projectType === "microservice") {
     const tsconfigPath = path.join(serviceRoot, "tsconfig.json");
     let tsconfigContent = fs.readFileSync(tsconfigPath, "utf8");
-    
+
     // Remove comments from JSON (strip-json-comments approach)
     tsconfigContent = tsconfigContent
-      .replace(/\/\/.*$/gm, '') // Remove single-line comments
-      .replace(/\/\*[\s\S]*?\*\//g, ''); // Remove multi-line comments
-    
+      .replace(/\/\/.*$/gm, "") // Remove single-line comments
+      .replace(/\/\*[\s\S]*?\*\//g, ""); // Remove multi-line comments
+
     const tsconfig = JSON.parse(tsconfigContent);
 
-    // Update paths to include shared folder
+    // Update baseUrl to allow import from the shared folder
+    tsconfig.compilerOptions.baseUrl = "."
+
+    // Update paths to include shared folder (works in both Docker and VS Code)
     tsconfig.compilerOptions.paths = {
-      "@/*": ["*"],
-      "@/config/*": ["../../shared/config/*"],
-      "@/utils/*": ["../../shared/utils/*"],
+      "@/*": ["src/*"],
+      "@/shared/*": ["shared/*", "../../shared/*"],
     };
 
+    // Remove rootDir restriction to allow imports from outside src/
+    delete tsconfig.compilerOptions.rootDir;
+
     fs.writeFileSync(tsconfigPath, JSON.stringify(tsconfig, null, 2) + "\n");
+
+    // Update imports in service files to use @/shared/* instead of @/* for utils/config
+    // This applies to non-gateway services
+    if (serviceName !== "gateway") {
+      const healthControllerPath = path.join(
+        serviceRoot,
+        `src/modules/v1/health/health.controller.${ext}`,
+      );
+      if (fs.existsSync(healthControllerPath)) {
+        let healthControllerContent = fs.readFileSync(
+          healthControllerPath,
+          "utf8",
+        );
+        healthControllerContent = healthControllerContent.replace(
+          'from "@/utils"',
+          'from "@/shared/utils"',
+        );
+        fs.writeFileSync(healthControllerPath, healthControllerContent);
+      }
+
+      // Update server.ts to use shared imports
+      const serverPath = path.join(serviceRoot, `src/server.${ext}`);
+      if (fs.existsSync(serverPath)) {
+        let serverContent = fs.readFileSync(serverPath, "utf8");
+        serverContent = serverContent
+          .replace('from "@/utils"', 'from "@/shared/utils"')
+          .replace('from "@/config"', 'from "@/shared/config"');
+        
+        // Update PORT to use service-specific environment variable
+        const portEnvVar = `${serviceName.toUpperCase().replace(/-/g, "_")}_PORT`;
+        serverContent = serverContent.replace(
+          /const PORT = ENV\.PORT \|\| (\d+);/,
+          `const PORT = ENV.${portEnvVar} || $1;`
+        );
+        
+        fs.writeFileSync(serverPath, serverContent);
+      }
+    }
   }
 
   // Update package.json
   const packageJsonPath = path.join(serviceRoot, "package.json");
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-  
+
   // Create new package.json with name at the top
   const orderedPackageJson = {
     name: serviceName || res.sanitizedName,
@@ -326,12 +392,12 @@ await connectDB();`
     description: res.description || packageJson.description,
     ...packageJson,
   };
-  
+
   // Remove duplicate keys that were moved to the top
   delete orderedPackageJson.name;
   delete orderedPackageJson.version;
   delete orderedPackageJson.description;
-  
+
   // Re-add them at the top in correct order
   const finalPackageJson = {
     name: serviceName || res.sanitizedName,
@@ -339,37 +405,57 @@ await connectDB();`
     description: res.description || packageJson.description,
     ...orderedPackageJson,
   };
-  
+
   // Add author if provided
   if (res.author) {
     finalPackageJson.author = res.author;
   }
-  
+
   // Add keywords if provided
   if (res.keywords && res.keywords.trim()) {
-    finalPackageJson.keywords = res.keywords.split(',').map(k => k.trim()).filter(Boolean);
+    finalPackageJson.keywords = res.keywords
+      .split(",")
+      .map((k) => k.trim())
+      .filter(Boolean);
   }
-  
+
   // Add Node.js native path aliasing for JavaScript projects
   // This replaces TypeScript's tsconfig paths with Node's native imports field
-  if (res.language === 'javascript') {
+  if (res.language === "javascript") {
     finalPackageJson.imports = {
-      "#/*": "./src/*"
+      "#/*": "./src/*",
     };
   }
-  
+
+  // Add --poll flag to dev script for Docker mode (fixes watch mode in Docker on Windows)
+  if (res.projectType === "microservice" && res.mode === "docker") {
+    if (finalPackageJson.scripts && finalPackageJson.scripts.dev) {
+      finalPackageJson.scripts.dev = finalPackageJson.scripts.dev.replace(
+        "ts-node-dev --respawn --transpile-only",
+        "ts-node-dev --respawn --transpile-only --poll",
+      );
+    }
+  }
+
   fs.writeFileSync(
     packageJsonPath,
-    JSON.stringify(finalPackageJson, null, 2) + "\n"
+    JSON.stringify(finalPackageJson, null, 2) + "\n",
   );
+
+  // Skip installation if skipInstall is true (will be done later in batch)
+  if (skipInstall) {
+    return { deps, devDeps, installSucceeded: true };
+  }
 
   // Install dependencies
   console.log(
-    pc.cyan(`\n📦 Installing dependencies for ${serviceName || "project"}...\n`)
+    pc.cyan(
+      `\n📦 Installing dependencies for ${serviceName || "project"}...\n`,
+    ),
   );
-  
+
   let installSucceeded = false;
-  
+
   try {
     if (deps.length) {
       execSync(`npm install ${deps.join(" ")}`, {
@@ -385,26 +471,33 @@ await connectDB();`
     }
     execSync("npm install", { cwd: serviceRoot, stdio: "inherit" });
     installSucceeded = true;
-    
+
     // Run format after successful install
     console.log(pc.cyan("\n🎨 Formatting code...\n"));
     try {
       execSync("npm run format", { cwd: serviceRoot, stdio: "inherit" });
     } catch (formatError) {
-      console.warn(pc.yellow("⚠️  Warning: Code formatting failed. You can run it manually later with: npm run format\n"));
+      console.warn(
+        pc.yellow(
+          "⚠️  Warning: Code formatting failed. You can run it manually later with: npm run format\n",
+        ),
+      );
     }
   } catch (error) {
-    console.error(pc.yellow("\n⚠️  Warning: Some dependencies failed to install."));
-    console.error(pc.yellow("This is usually due to native modules (like argon2) requiring build tools.\n"));
-    console.error(pc.cyan("💡 Solutions:"));
-    console.error(pc.dim("   1. Install build tools: npm install --global windows-build-tools"));
-    console.error(pc.dim("   2. Or switch to bcrypt (works better on Windows)"));
-    console.error(pc.dim("   3. Or manually install later: cd " + (serviceName || res.sanitizedName) + " && npm install"));
-    console.error(pc.dim("   4. Then run: npm run format\n"));
-    
+    console.error(
+      pc.red("\n❌ Failed to install dependencies"),
+    );
+    console.error(pc.dim(`\nYou can install them later by running:`));
+    console.error(
+      pc.cyan(
+        `   cd ${serviceName || res.sanitizedName} && npm install`,
+      ),
+    );
+    console.error(pc.dim("   Then run: npm run format\n"));
+
     // Don't exit - let the project be created anyway
     console.log(pc.cyan("⏭️  Continuing with project creation...\n"));
   }
 
-  return { deps, installSucceeded };
+  return { deps, devDeps, installSucceeded };
 };

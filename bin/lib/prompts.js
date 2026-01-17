@@ -86,12 +86,16 @@ export const getProjectConfig = async () => {
       ],
     },
     {
-      type: (prev, values) =>
-        isInMicroserviceProject || isCI
-          ? null
-          : prev === "microservice"
-          ? "select"
-          : null,
+      type: (prev, values) => {
+        // Skip if in existing microservice project or CI mode
+        if (isInMicroserviceProject || isCI) return null;
+        
+        // Get projectType from previous answers or CLI args
+        const projectType = prev || cliProjectType || values.projectType;
+        
+        // Show prompt only if projectType is microservice
+        return projectType === "microservice" ? "select" : null;
+      },
       name: "mode",
       message: pc.cyan("Microservice setup"),
       choices: [

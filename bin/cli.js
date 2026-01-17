@@ -12,6 +12,7 @@ import {
   generateDockerCompose,
   generatePm2Config,
   copyDockerfile,
+  copyDockerignore,
 } from "./lib/microservice-config.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -57,6 +58,22 @@ if (!isInMicroserviceProject && config.projectType === "microservice") {
   }
   fs.cpSync(base, target, { recursive: true });
   
+  // Remove db.ts from config if auth is not enabled
+  if (!config.auth) {
+    const dbPath = path.join(target, "src/config/db.ts");
+    if (fs.existsSync(dbPath)) {
+      fs.rmSync(dbPath);
+    }
+    
+    // Update index.ts to not export connectDB
+    const indexPath = path.join(target, "src/config/index.ts");
+    if (fs.existsSync(indexPath)) {
+      let indexContent = fs.readFileSync(indexPath, "utf8");
+      indexContent = indexContent.replace('export { connectDB } from "./db";\n', '');
+      fs.writeFileSync(indexPath, indexContent);
+    }
+  }
+  
   // Transform to JavaScript if selected
   if (config.language === "javascript") {
     // console.log("\n🔄 Converting TypeScript to JavaScript...\n");
@@ -85,11 +102,52 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
       fs.cpSync(baseConfigDir, sharedConfigDir, { recursive: true });
       fs.cpSync(baseUtilsDir, sharedUtilsDir, { recursive: true });
 
+      // Remove db.ts from shared config if auth is not enabled
+      if (!config.auth) {
+        const sharedDbPath = path.join(sharedConfigDir, "db.ts");
+        if (fs.existsSync(sharedDbPath)) {
+          fs.rmSync(sharedDbPath);
+        }
+        
+        // Update index.ts to not export connectDB
+        const sharedIndexPath = path.join(sharedConfigDir, "index.ts");
+        if (fs.existsSync(sharedIndexPath)) {
+          let indexContent = fs.readFileSync(sharedIndexPath, "utf8");
+          indexContent = indexContent.replace('export { connectDB } from "./db";\n', '');
+          fs.writeFileSync(sharedIndexPath, indexContent);
+        }
+      }
+
+      // Update shared env.ts to include all service port environment variables
+      const sharedEnvPath = path.join(sharedConfigDir, "env.ts");
+      if (fs.existsSync(sharedEnvPath)) {
+        let envContent = fs.readFileSync(sharedEnvPath, "utf8");
+        
+        // Build port environment variables for all services
+        const allServices = ["gateway", "health-service"];
+        if (config.auth) allServices.push("auth-service");
+        
+        const portEnvVars = allServices.map((service, index) => {
+          const isGateway = service === "gateway";
+          const port = isGateway ? 4000 : 4001 + index - 1;
+          const envVarName = `${service.toUpperCase().replace(/-/g, "_")}_PORT`;
+          return `  ${envVarName}: process.env.${envVarName}!,`;
+        }).join("\n");
+        
+        // Replace PORT with service-specific ports
+        envContent = envContent.replace(
+          "  PORT: process.env.PORT!,",
+          portEnvVars
+        );
+        
+        fs.writeFileSync(sharedEnvPath, envContent);
+      }
+
       // Create shared package.json
       const sharedPackageJson = {
         name: "@shared/common",
         version: "1.0.0",
-        type: "module",
+        type: "commonjs",
         exports: {
           "./config/*": "./config/*",
           "./utils/*": "./utils/*",
@@ -113,6 +171,12 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
     console.log(`\n🔨 Setting up ${serviceName}...`);
     fs.cpSync(base, serviceRoot, { recursive: true });
 
+    // Remove .env and .env.example from microservices (environment variables come from docker-compose/pm2)
+    const envPath = path.join(serviceRoot, ".env");
+    const envExamplePath = path.join(serviceRoot, ".env.example");
+    if (fs.existsSync(envPath)) fs.rmSync(envPath);
+    if (fs.existsSync(envExamplePath)) fs.rmSync(envExamplePath);
+
     // Remove config and utils from service (they'll use shared) - except gateway handles it differently
     if (serviceName !== "gateway") {
       const serviceConfigDir = path.join(serviceRoot, "src", "config");
@@ -132,10 +196,10 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
         .filter((f) => fs.statSync(path.join(servicesDir, f)).isDirectory())
     : servicesToCreate;
 
-  // Track if all installs succeeded for Husky setup
-  let allInstallsSucceeded = true;
-
-  // Now setup each service with knowledge of all services
+  // Step 1: Setup all service files first (without installing dependencies)
+  console.log(pc.cyan("\n⚙️  Setting up service files...\n"));
+  const serviceConfigs = [];
+  
   for (const serviceName of servicesToCreate) {
     const serviceRoot = path.join(target, "services", serviceName);
     const shouldIncludeAuth = isInMicroserviceProject
@@ -146,39 +210,22 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
       serviceName,
       serviceRoot,
       shouldIncludeAuth,
-      allServices
+      allServices,
+      true // Skip install for now
     );
-    if (!result.installSucceeded) {
-      allInstallsSucceeded = false;
-    }
+    serviceConfigs.push({
+      serviceName,
+      serviceRoot,
+      deps: result.deps,
+      devDeps: result.devDeps
+    });
   }
 
-  // Store for later use
-  config.allInstallsSucceeded = allInstallsSucceeded;
-
-  // Transform to JavaScript if selected (for microservices)
-  if (config.language === "javascript") {
-    console.log(`\n${pc.cyan("⚙️  Converting microservices to JavaScript...")}\n`);
-    
-    // Transform shared folder
-    const sharedDir = path.join(target, "shared");
-    if (fs.existsSync(sharedDir)) {
-      transformDirectory(sharedDir);
-    }
-    
-    // Transform each service
-    for (const serviceName of allServices) {
-      const serviceRoot = path.join(target, "services", serviceName);
-      console.log(pc.dim(`   Transforming ${serviceName}...`));
-      transformToJavaScript(serviceRoot);
-    }
-    
-    console.log(pc.green("✓ JavaScript transformation complete\n"));
-  }
-
+  // Step 2: Generate docker-compose/pm2 config and root files
   if (mode === "docker") {
     generateDockerCompose(target, allServices);
     copyDockerfile(target, servicesToCreate);
+    copyDockerignore(target, servicesToCreate);
   } else {
     generatePm2Config(target, allServices);
   }
@@ -202,24 +249,14 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
       JSON.stringify(rootPackageJson, null, 2) + "\n"
     );
   }
-} else {
-  const result = await setupService(config, null, target, true);
-  config.installSucceeded = result.installSucceeded;
-}
 
-// Generate README.md
-if (!isInMicroserviceProject) {
-  console.log(`\n${pc.cyan("📝 Generating README.md...")}\n`);
-  const readmeContent = generateReadme(config);
-  fs.writeFileSync(path.join(target, "README.md"), readmeContent);
-  
-  // Rename gitignore to .gitignore (npm doesn't publish .gitignore files)
-  if (config.projectType === "microservice") {
-    const servicesDir = path.join(target, "services");
-    const allServices = fs.readdirSync(servicesDir).filter((f) => 
-      fs.statSync(path.join(servicesDir, f)).isDirectory()
-    );
+  // Step 3: Generate README and create root configuration files
+  if (!isInMicroserviceProject) {
+    console.log(`\n${pc.cyan("📝 Generating README.md...")}\n`);
+    const readmeContent = generateReadme(config);
+    fs.writeFileSync(path.join(target, "README.md"), readmeContent);
     
+    // Rename gitignore to .gitignore (npm doesn't publish .gitignore files)
     for (const service of allServices) {
       const gitignorePath = path.join(servicesDir, service, "gitignore");
       const dotGitignorePath = path.join(servicesDir, service, ".gitignore");
@@ -227,35 +264,141 @@ if (!isInMicroserviceProject) {
         fs.renameSync(gitignorePath, dotGitignorePath);
       }
     }
-  } else {
-    const gitignorePath = path.join(target, "gitignore");
-    const dotGitignorePath = path.join(target, ".gitignore");
-    if (fs.existsSync(gitignorePath)) {
-      fs.renameSync(gitignorePath, dotGitignorePath);
+    
+    // Create root .gitignore for microservices
+    const rootGitignoreContent = `.env\nnode_modules\n`;
+    fs.writeFileSync(path.join(target, ".gitignore"), rootGitignoreContent);
+
+    // Create root .env and .env.example for microservices
+    let rootENVContent = `# Environment Configuration\nNODE_ENV=development\n\n`;
+    
+    // Add port configuration for each service
+    allServices.forEach((service, index) => {
+      const isGateway = service === "gateway";
+      const port = isGateway ? 4000 : 4001 + allServices.filter((s, i) => s !== "gateway" && i < index).length;
+      const envVarName = `${service.toUpperCase().replace(/-/g, "_")}_PORT`;
+      const serviceName = service.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+      rootENVContent += `# ${serviceName}\n${envVarName}=${port}\n\n`;
+    });
+    
+    fs.writeFileSync(path.join(target, ".env"), rootENVContent);
+    fs.writeFileSync(path.join(target, ".env.example"), rootENVContent);
+
+    // Create root tsconfig.json for microservices workspace
+    const rootTsConfigContent = {
+      "compilerOptions": {
+        "target": "ES2020",
+        "module": "CommonJS",
+        "lib": ["ES2020"],
+        "moduleResolution": "node",
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "strict": true,
+        "baseUrl": ".",
+        "paths": {
+          "@/shared/*": ["shared/*"]
+        }
+      },
+      "include": [],
+      "references": allServices.map(service => ({
+        "path": `./services/${service}`
+      }))
+    };
+    fs.writeFileSync(
+      path.join(target, "tsconfig.json"),
+      JSON.stringify(rootTsConfigContent, null, 2) + "\n"
+    );
+  }
+
+  // Step 4: Transform to JavaScript if selected (before npm install)
+  if (config.language === "javascript") {
+    console.log(`\n${pc.cyan("⚙️  Converting microservices to JavaScript...")}\n`);
+    
+    // Transform shared folder
+    const sharedDir = path.join(target, "shared");
+    if (fs.existsSync(sharedDir)) {
+      transformDirectory(sharedDir);
+    }
+    
+    // Transform each service
+    for (const serviceName of allServices) {
+      const serviceRoot = path.join(target, "services", serviceName);
+      console.log(pc.dim(`   Transforming ${serviceName}...`));
+      transformToJavaScript(serviceRoot);
+    }
+    
+    console.log(pc.green("✓ JavaScript transformation complete\n"));
+  }
+
+  // Step 5: Install dependencies for all services
+  console.log(pc.cyan("\n📦 Installing dependencies for all services...\n"));
+  let allInstallsSucceeded = true;
+
+  for (const { serviceName, serviceRoot, deps, devDeps } of serviceConfigs) {
+    console.log(pc.cyan(`\n📦 Installing dependencies for ${serviceName}...\n`));
+    
+    try {
+      if (deps.length) {
+        execSync(`npm install ${deps.join(" ")}`, {
+          cwd: serviceRoot,
+          stdio: "inherit",
+        });
+      }
+      if (devDeps.length) {
+        execSync(`npm install -D ${devDeps.join(" ")}`, {
+          cwd: serviceRoot,
+          stdio: "inherit",
+        });
+      }
+      execSync("npm install", { cwd: serviceRoot, stdio: "inherit" });
+
+      // Run format after successful install
+      console.log(pc.cyan("\n🎨 Formatting code...\n"));
+      try {
+        execSync("npm run format", { cwd: serviceRoot, stdio: "inherit" });
+      } catch (formatError) {
+        console.warn(
+          pc.yellow(
+            "⚠️  Warning: Code formatting failed. You can run it manually later with: npm run format\n",
+          ),
+        );
+      }
+    } catch (error) {
+      allInstallsSucceeded = false;
+      console.error(
+        pc.red(`\n❌ Failed to install dependencies for ${serviceName}`),
+      );
+      console.error(pc.dim(`\nYou can install them later by running:`));
+      console.error(pc.cyan(`   cd services/${serviceName} && npm install\n`));
     }
   }
+
+  // Store for later use
+  config.allInstallsSucceeded = allInstallsSucceeded;
+} else {
+  const result = await setupService(config, null, target, true);
+  config.installSucceeded = result.installSucceeded;
+}
+
+// Generate README.md for monolith (microservices already done above)
+if (!isInMicroserviceProject && config.projectType === "monolith") {
+  console.log(`\n${pc.cyan("📝 Generating README.md...")}\n`);
+  const readmeContent = generateReadme(config);
+  fs.writeFileSync(path.join(target, "README.md"), readmeContent);
   
-  // Generate .env from .env.example for each service or root
+  // Rename gitignore to .gitignore (npm doesn't publish .gitignore files)
+  const gitignorePath = path.join(target, "gitignore");
+  const dotGitignorePath = path.join(target, ".gitignore");
+  if (fs.existsSync(gitignorePath)) {
+    fs.renameSync(gitignorePath, dotGitignorePath);
+  }
+  
+  // Generate .env from .env.example for monolith only
   console.log(`${pc.cyan("📄 Setting up environment files...")}\n`);
-  if (config.projectType === "microservice") {
-    const servicesDir = path.join(target, "services");
-    const allServices = fs.readdirSync(servicesDir).filter((f) => 
-      fs.statSync(path.join(servicesDir, f)).isDirectory()
-    );
-    
-    for (const service of allServices) {
-      const envExamplePath = path.join(servicesDir, service, ".env.example");
-      const envPath = path.join(servicesDir, service, ".env");
-      if (fs.existsSync(envExamplePath) && !fs.existsSync(envPath)) {
-        fs.copyFileSync(envExamplePath, envPath);
-      }
-    }
-  } else {
-    const envExamplePath = path.join(target, ".env.example");
-    const envPath = path.join(target, ".env");
-    if (fs.existsSync(envExamplePath) && !fs.existsSync(envPath)) {
-      fs.copyFileSync(envExamplePath, envPath);
-    }
+  const envExamplePath = path.join(target, ".env.example");
+  const envPath = path.join(target, ".env");
+  if (fs.existsSync(envExamplePath) && !fs.existsSync(envPath)) {
+    fs.copyFileSync(envExamplePath, envPath);
   }
 }
 
