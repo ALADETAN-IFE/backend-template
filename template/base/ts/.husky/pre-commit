@@ -1,0 +1,13 @@
+set -e
+
+echo "Checking format (prettier)..."
+npm run check-format
+
+echo "Running TypeScript type-check..."
+npx tsc --noEmit
+
+echo "Checking lint..."
+npm run lint -- --max-warnings=0
+
+echo "Building project..."
+npm run build

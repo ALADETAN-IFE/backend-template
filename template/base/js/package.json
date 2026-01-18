@@ -1,0 +1,28 @@
+{
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon --exec node src/server.js",
+    "start": "node src/server.js",
+    "lint": "eslint \"src/**/*.js\"",
+    "format": "prettier --write \"src/**/*.{js,json}\"",
+    "check-format": "prettier --check \"src/**/*.{js,json}\"",
+    "prepare": "husky"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+     "nodemon": "^3.0.2",
+    "prettier": "^3.7.4"
+  }
+}
