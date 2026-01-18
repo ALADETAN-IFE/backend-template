@@ -20,6 +20,9 @@ yarn-error.log*
 # Release notes
 RELEASE_NOTES_*.md
 
+# Test instalation
+*.tgz
+
 # OS files
 .DS_Store
 Thumbs.db
