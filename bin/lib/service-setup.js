@@ -78,7 +78,8 @@ export const setupService = async (
     if (res.projectType === "monolith" || serviceName === "health-service") {
       for (const f of res.features) {
         const feature = await import(`../../template/features/${f}/inject.js`);
-        imports.push(feature.imports);
+        const featureImports = feature.getImports ? feature.getImports(res.language) : feature.imports;
+        imports.push(featureImports);
         middlewares.push(feature.middleware);
         deps.push(...feature.deps);
         if (feature.devDeps) {
@@ -96,10 +97,11 @@ export const setupService = async (
         devDeps.push(...baseAuth.devDeps);
       }
 
-      for (const file in baseAuth.files) {
+      const authFiles = baseAuth.getFiles ? baseAuth.getFiles(res.language) : baseAuth.files;
+      for (const file in authFiles) {
         const fullPath = path.join(serviceRoot, file);
         fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-        fs.writeFileSync(fullPath, baseAuth.files[file]);
+        fs.writeFileSync(fullPath, authFiles[file]);
       }
 
       const algo = await prompts({
@@ -135,12 +137,20 @@ export const setupService = async (
       }
 
       for (const file in hashFeature.files) {
-        const fullPath = path.join(serviceRoot, file);
+        const ext = res.language === "javascript" ? ".js" : ".ts";
+        const filePath = file.replace(/\.ts$/, ext);
+        const fullPath = path.join(serviceRoot, filePath);
         fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-        fs.writeFileSync(fullPath, hashFeature.files[file]);
+        
+        let content = hashFeature.files[file];
+        if (res.language === "javascript") {
+          const { stripTypeScript } = await import("./ts-to-js.js");
+          content = stripTypeScript(content);
+        }
+        fs.writeFileSync(fullPath, content);
       }
 
-      v1Imports.push(baseAuth.imports);
+      v1Imports.push(baseAuth.getImports ? baseAuth.getImports(res.language) : baseAuth.imports);
       v1Routes.push(baseAuth.middleware);
     }
 
@@ -222,9 +232,10 @@ export const setupService = async (
 
       // Add ALLOWED_ORIGIN if CORS is selected
       if (res.features && res.features.includes("cors")) {
+        const assertion = res.language === "javascript" ? "" : "!";
         envContent = envContent.replace(
           "/*__ALLOWED_ORIGIN__*/",
-          "ALLOWED_ORIGIN: process.env.ALLOWED_ORIGIN!,",
+          `ALLOWED_ORIGIN: process.env.ALLOWED_ORIGIN${assertion},`,
         );
       } else {
         envContent = envContent.replace("/*__ALLOWED_ORIGIN__*/", "");
@@ -232,13 +243,14 @@ export const setupService = async (
 
       // Add MONGO_URI if auth is enabled
       if (shouldIncludeAuth && res.auth) {
+        const assertion = res.language === "javascript" ? "" : "!";
         envContent = envContent.replace(
           "/*__MONGO_URI__*/",
-          "MONGO_URI: process.env.MONGO_URI!,",
+          `MONGO_URI: process.env.MONGO_URI${assertion},`,
         );
         envContent = envContent.replace(
           "/*__JWT_SECRET__*/",
-          "JWT_SECRET: process.env.JWT_SECRET!,",
+          `JWT_SECRET: process.env.JWT_SECRET${assertion},`,
         );
       } else {
         envContent = envContent.replace("/*__MONGO_URI__*/", "");

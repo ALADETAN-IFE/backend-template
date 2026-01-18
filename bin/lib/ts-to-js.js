@@ -28,16 +28,15 @@ export function stripTypeScript(content) {
   jsContent = jsContent.replace(/import\s*\{\s*Response\s*\}\s*from\s*["']express["'];?\s*\n/gm, '');
   jsContent = jsContent.replace(/import\s*\{\s*NextFunction\s*\}\s*from\s*["']express["'];?\s*\n/gm, '');
 
-  // Remove interface declarations
+  // Remove interface declarations FIRST (before other transformations)
   // CRITICAL: Must have 'interface' keyword explicitly (not 'const' or other keywords)
   // Single-line interfaces
-  jsContent = jsContent.replace(/^export\s+interface\s+\w+(\s+extends\s+[\w,\s]+)?\s*\{[^}]*\}\s*;?\s*$/gm, '');
-  jsContent = jsContent.replace(/^interface\s+\w+(\s+extends\s+[\w,\s]+)?\s*\{[^}]*\}\s*;?\s*$/gm, '');
+  jsContent = jsContent.replace(/^export\s+interface\s+\w+(\s+extends\s+[\w,\s]+)?\s*\{[^}]*\}\s*;?/gm, '');
+  jsContent = jsContent.replace(/^interface\s+\w+(\s+extends\s+[\w,\s]+)?\s*\{[^}]*\}\s*;?/gm, '');
   
-  // Multi-line interfaces - must have a line break after the interface name/extends before {
-  // This prevents matching regular object literals
-  jsContent = jsContent.replace(/^export\s+interface\s+\w+(\s+extends\s+[\w,\s<>]+)?\s*\{[\s\S]*?^}/gm, '');
-  jsContent = jsContent.replace(/^interface\s+\w+(\s+extends\s+[\w,\s<>]+)?\s*\{[\s\S]*?^}/gm, '');
+  // Multi-line interfaces - more aggressive matching
+  jsContent = jsContent.replace(/^export\s+interface\s+\w+(\s+extends\s+[\w,\s<>]+)?\s*\{[\s\S]*?\n\}/gm, '');
+  jsContent = jsContent.replace(/^interface\s+\w+(\s+extends\s+[\w,\s<>]+)?\s*\{[\s\S]*?\n\}/gm, '');
 
   // Remove type aliases
   jsContent = jsContent.replace(/^export\s+type\s+\w+\s*=\s*[^;]+;\s*$/gm, '');
@@ -65,54 +64,23 @@ export function stripTypeScript(content) {
   });
 
   // Remove ! non-null assertions FIRST (before other transformations)
-  // Only remove ! that appears after identifiers, closing brackets, or closing parentheses
-  // Be very conservative to avoid breaking other syntax
-  jsContent = jsContent.replace(/([a-zA-Z0-9_\])])!/g, '$1');
+  // Match ! when followed by comma, semicolon, dot, closing paren/bracket, newline, or end
+  // This approach is more reliable and catches all cases like process.env.VAR!,
+  jsContent = jsContent.replace(/!\s*(?=[,;.)\]\n}]|$)/g, "");
   
-  // Remove function parameter types - IMPROVED VERSION
-  // Handle spread parameters: ...args: Type[] => ...args
-  jsContent = jsContent.replace(/(\.\.\.\s*\w+)\s*:\s*[^,)]+/g, '$1');
+  // Remove function parameter types - COMPREHENSIVE VERSION
+  // Must handle: param: Type, param: Type[], param: Promise<Type>, destructured params, etc.
   
-  // Handle regular parameters with more precision
-  // Strategy: Clean type annotations from parameter lists while avoiding object literals in function CALLS
+  // Remove parameter type annotations from function signatures
+  // Handle destructured parameters like ({ email, password }: { email: string, password: string })
+  jsContent = jsContent.replace(/\(\s*\{([^}]+)\}\s*:\s*\{[^}]+\}\s*\)/g, '({ $1 })');
   
-  // 1. Function declarations: function name(params) {
-  jsContent = jsContent.replace(/function\s+\w+\s*\(([^)]*)\)/g, (match, params) => {
-    if (!params.includes(':')) return match;
-    // Skip if it has object literals (look for : followed by value, not type)
-    // Object literals have patterns like {key: value} while types have param: Type
-    const cleaned = params.split(',').map(p => p.replace(/:\s*[^,=)]+(?=[,)]|$)/, '')).join(',');
-    return match.replace(params, cleaned);
-  });
+  // Remove simple parameter types: param: Type
+  jsContent = jsContent.replace(/(\w+)\s*:\s*[^,=){\n]+(?=[,)])/g, '$1');
   
-  // 2. Arrow functions: (params) => or (params) => {
-  // Be more specific: only skip if we see actual object literal patterns {key:value}
-  jsContent = jsContent.replace(/\(([^)]+)\)\s*=>/g, (match, params) => {
-    if (!params.includes(':')) return match;
-    
-    // Check if this looks like an object literal: has both { and } with content between
-    if (/\{[^}]+\}/.test(params)) return match;
-    
-    const cleaned = params.split(',').map(p => p.replace(/:\s*[^,=)]+(?=[,)]|$)/, '')).join(',');
-    return `(${cleaned}) =>`;
-  });
-  
-  // 3. Method definitions in classes/objects: methodName(params) {
-  jsContent = jsContent.replace(/(\w+)\s*\(([^)]*)\)\s*\{/g, (match, name, params) => {
-    if (!params.includes(':')) return match;
-    // Skip if it looks like object destructuring in params
-    if (/\{[^}]+\}/.test(params)) return match;
-    const cleaned = params.split(',').map(p => p.replace(/:\s*[^,=)]+(?=[,)]|$)/, '')).join(',');
-    return `${name}(${cleaned}) {`;
-  });
-  
-  // Remove return type annotations - IMPROVED VERSION
-  // Match ): Type => but only consume the type part
-  jsContent = jsContent.replace(/\)\s*:\s*[^{=>]+(\s*=>)/g, ')$1');
-  jsContent = jsContent.replace(/\)\s*:\s*[^{=>]+(\s*\{)/g, ')$1');
-  
-  // Remove function parameter types in function declarations
-  jsContent = jsContent.replace(/function\s+(\w+)\s*:\s*[^=]+/g, 'function $1');
+  // Remove return type annotations from functions
+  // Match ): ReturnType => or ): ReturnType {
+  jsContent = jsContent.replace(/\)\s*:\s*[^{=>]+(?=[{=>])/g, ')');
   
   // Remove as type assertions (including 'as const')
   jsContent = jsContent.replace(/\s+as\s+(const|any|unknown|readonly|\w+)/g, '');
@@ -139,29 +107,105 @@ export function stripTypeScript(content) {
     return `const ${name} = {\n${obj}\n}`;
   });
 
-  // Fix import paths for Node.js ESM
-  // 1. Replace TypeScript alias @/ with Node.js native #/
-  jsContent = jsContent.replace(/from\s+["']@\//g, 'from "#/');
-  jsContent = jsContent.replace(/import\s*\(\s*["']@\//g, 'import("#/');
-  jsContent = jsContent.replace(/require\s*\(\s*["']@\//g, 'require("#/');
+  // Convert ES modules to CommonJS
+  // 1. Convert import statements to require()
   
-  // 2. Add .js extension to #/ imports (they're now pointing to .js files)
-  jsContent = jsContent.replace(/from\s+["']#\/([^"']+)["']/g, (match, path) => {
-    // Don't add .js if it already has an extension or is a directory import
-    if (path.endsWith('.js') || path.endsWith('.json') || path.endsWith('/')) {
-      return match;
-    }
-    return `from "#/${path}.js"`;
+  // Handle: import defaultExport, { named } from "module" (must be first - more specific)
+  jsContent = jsContent.replace(/^import\s+(\w+)\s*,\s*\{([^}]+)\}\s+from\s+["']([^"']+)["'];?/gm, 
+    (match, defaultName, named, module) => {
+      return `const ${defaultName} = require("${module}");\nconst {${named}} = require("${module}");`;
+    });
+  
+  // Handle: import * as name from "module"
+  jsContent = jsContent.replace(/^import\s+\*\s+as\s+(\w+)\s+from\s+["']([^"']+)["'];?/gm, 
+    'const $1 = require("$2");');
+  
+  // Handle: import { named } from "module"
+  jsContent = jsContent.replace(/^import\s+\{([^}]+)\}\s+from\s+["']([^"']+)["'];?/gm, 
+    'const {$1} = require("$2");');
+  
+  // Handle: import defaultExport from "module"
+  jsContent = jsContent.replace(/^import\s+(\w+)\s+from\s+["']([^"']+)["'];?/gm, 
+    'const $1 = require("$2");');
+  
+  // 2. Convert export statements to module.exports
+  
+  // Handle: export { default as name } from "module"
+  jsContent = jsContent.replace(/^export\s+\{\s*default\s+as\s+(\w+)\s*\}\s+from\s+["']([^"']+)["'];?/gm,
+    'const $1 = require("$2");');
+  
+  // Handle: export { named } from "module" (re-export)
+  jsContent = jsContent.replace(/^export\s+\{([^}]+)\}\s+from\s+["']([^"']+)["'];?/gm,
+    (match, names, module) => {
+      return `const {${names}} = require("${module}");`;
+    });
+  
+  // Handle: export default something
+  jsContent = jsContent.replace(/^export\s+default\s+(.+);?/gm, 'module.exports = $1;');
+  
+  // Handle: export { named } (local exports) - but NOT re-exports
+  jsContent = jsContent.replace(/^export\s+\{([^}]+)\};?$/gm, (match, names) => {
+    // Don't process if it was a re-export (already handled above)
+    if (match.includes(' from ')) return match;
+    return `module.exports = {${names}};`;
   });
   
-  // 3. Add .js extension to relative imports
-  jsContent = jsContent.replace(/from\s+["'](\.\.?\/[^"']+)["']/g, (match, path) => {
-    // Don't add .js if it already has an extension
-    if (path.match(/\.\w+$/)) {
-      return match;
+  // Handle: export const/let/var name = value
+  jsContent = jsContent.replace(/^export\s+(const|let|var)\s+/gm, '$1 ');
+  
+  // Collect all exported names to create module.exports at the end
+  const exportedNames = [];
+  const reExportedNames = [];
+  
+  // Collect names from re-exports (export { x } from "module")
+  const reExportMatches = content.matchAll(/^export\s+\{([^}]+)\}\s+from\s+["']([^"']+)["'];?/gm);
+  for (const match of reExportMatches) {
+    const names = match[1].split(',').map(n => {
+      const trimmed = n.trim();
+      // Handle "default as name" -> extract "name"
+      const asMatch = trimmed.match(/default\s+as\s+(\w+)/);
+      if (asMatch) return asMatch[1];
+      return trimmed;
+    });
+    reExportedNames.push(...names);
+  }
+  
+  // Collect names from local const/let/var exports
+  const exportPattern = /^(?:const|let|var)\s+(\w+)\s*=/gm;
+  let match;
+  while ((match = exportPattern.exec(jsContent)) !== null) {
+    // Only collect if it was originally an export
+    if (content.includes(`export const ${match[1]}`) || 
+        content.includes(`export let ${match[1]}`) || 
+        content.includes(`export var ${match[1]}`)) {
+      exportedNames.push(match[1]);
     }
-    return `from "${path}.js"`;
+  }
+  
+  // Combine all exports
+  const allExports = [...exportedNames, ...reExportedNames];
+  
+  // Add module.exports for collected named exports (if not already present)
+  if (allExports.length > 0 && !jsContent.includes('module.exports')) {
+    const exportsObj = allExports.map(name => `  ${name}`).join(',\n');
+    jsContent += `\n\nmodule.exports = {\n${exportsObj}\n};\n`;
+  }
+  
+  // 3. Remove path aliases and file extensions
+  // Remove @/ and #/ path aliases, keep relative paths as-is (no extensions needed in CommonJS)
+  jsContent = jsContent.replace(/require\(["']@\/([^"']+)["']\)/g, (match, path) => {
+    // Convert @/ to relative path from src root
+    return `require("./${path}")`;
   });
+  
+  jsContent = jsContent.replace(/require\(["']#\/([^"']+)["']\)/g, (match, path) => {
+    // Convert #/ to relative path - this needs context-aware replacement
+    // For now, just remove the alias and let users fix manually if needed
+    return `require("./${path}")`;
+  });
+  
+  // Remove .js extensions from require statements (not needed in CommonJS)
+  jsContent = jsContent.replace(/require\(["']([^"']+)\.js["']\)/g, 'require("$1")');
 
   // Remove multiple consecutive blank lines
   jsContent = jsContent.replace(/\n\s*\n\s*\n/g, '\n\n');
@@ -219,14 +263,11 @@ export function getJavaScriptDependencies(originalDeps, originalDevDeps) {
 }
 
 /**
- * Get package.json imports field for Node.js native path aliasing
- * This replaces TypeScript's tsconfig paths with Node's native imports
- * @returns {Object} - imports configuration
+ * Get package.json configuration for CommonJS (no imports field needed)
+ * @returns {null} - No imports configuration needed for CommonJS
  */
 export function getNodeImportsConfig() {
-  return {
-    "#/*": "./src/*"
-  };
+  return null; // CommonJS doesn't need imports field
 }
 
 import fs from 'fs';
@@ -299,11 +340,17 @@ export function transformToJavaScript(targetDir) {
     packageJson.devDependencies = devDependencies;
     packageJson.scripts = getJavaScriptScripts();
     
-    // Add Node.js native imports for path aliasing
-    packageJson.imports = getNodeImportsConfig();
+    // Don't add imports field for CommonJS (it's null)
+    const importsConfig = getNodeImportsConfig();
+    if (importsConfig) {
+      packageJson.imports = importsConfig;
+    } else {
+      // Remove imports field if it exists
+      delete packageJson.imports;
+    }
 
-    // Ensure type: module is set
-    packageJson.type = 'module';
+    // Remove type: module (we're using CommonJS)
+    delete packageJson.type;
 
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
   }

@@ -1,4 +1,3 @@
-// middlewares/methodNotAllowed.ts
 import { Request, Response, NextFunction } from "express";
 
 const methodNotAllowed =

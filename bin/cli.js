@@ -7,7 +7,7 @@ import pc from "picocolors";
 import { getProjectConfig } from "./lib/prompts.js";
 import { setupService } from "./lib/service-setup.js";
 import { generateReadme } from "./lib/readme-generator.js";
-import { stripTypeScript, getJavaScriptScripts, getJavaScriptDependencies, transformToJavaScript, transformDirectory } from "./lib/ts-to-js.js";
+import { transformToJavaScript, transformDirectory } from "./lib/ts-to-js.js";
 import {
   generateDockerCompose,
   generatePm2Config,
@@ -131,7 +131,9 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
           const isGateway = service === "gateway";
           const port = isGateway ? 4000 : 4001 + index - 1;
           const envVarName = `${service.toUpperCase().replace(/-/g, "_")}_PORT`;
-          return `  ${envVarName}: process.env.${envVarName}!,`;
+          // Don't add ! for JavaScript projects - it will cause syntax errors
+          const assertion = config.language === "javascript" ? "" : "!";
+          return `  ${envVarName}: process.env.${envVarName}${assertion},`;
         }).join("\n");
         
         // Replace PORT with service-specific ports
