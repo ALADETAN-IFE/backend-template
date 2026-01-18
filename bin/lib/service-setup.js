@@ -24,7 +24,7 @@ export const setupService = async (
   serviceRoot,
   shouldIncludeAuth,
   allServices = [],
-  skipInstall = false
+  skipInstall = false,
 ) => {
   let imports = [];
   let middlewares = [];
@@ -36,9 +36,22 @@ export const setupService = async (
   // Detect file extension (ts or js)
   const ext = getFileExtension(serviceRoot);
 
+  // Ensure service-level gitignore is renamed immediately after template copy
+  try {
+    const serviceGitignore = path.join(serviceRoot, "gitignore");
+    const serviceDotGitignore = path.join(serviceRoot, ".gitignore");
+    if (fs.existsSync(serviceGitignore) && !fs.existsSync(serviceDotGitignore)) {
+      fs.renameSync(serviceGitignore, serviceDotGitignore);
+    }
+  } catch (err) {
+    // Non-fatal; continue setup
+  }
+
   // Special handling for gateway service
   if (serviceName === "gateway") {
-    const gatewayModule = await import("../../template/gateway/inject.js");
+    const gatewayModule = await import(
+      `../../template/gateway/${res.language}/inject.js`
+    );
     deps.push(...gatewayModule.gatewayDeps);
 
     // Copy gateway-specific files
@@ -46,12 +59,18 @@ export const setupService = async (
     const gatewayServerPath = path.join(serviceRoot, `src/server.${ext}`);
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+    // Read gateway template files according to selected language
+    const templateExt = res.language === "javascript" ? ".js" : ".ts";
+    const templateDir = path.join(
+      __dirname,
+      `../../template/gateway/${res.language}`,
+    );
     const gatewayAppContent = fs.readFileSync(
-      path.join(__dirname, "../../template/gateway/app.ts"),
+      path.join(templateDir, `app${templateExt}`),
       "utf8",
     );
     const gatewayServerContent = fs.readFileSync(
-      path.join(__dirname, "../../template/gateway/server.ts"),
+      path.join(templateDir, `server${templateExt}`),
       "utf8",
     );
 
@@ -78,12 +97,27 @@ export const setupService = async (
     if (res.projectType === "monolith" || serviceName === "health-service") {
       for (const f of res.features) {
         const feature = await import(`../../template/features/${f}/inject.js`);
-        const featureImports = feature.getImports ? feature.getImports(res.language) : feature.imports;
+        const featureImports = feature.getImports
+          ? feature.getImports(res.language)
+          : feature.imports;
         imports.push(featureImports);
         middlewares.push(feature.middleware);
         deps.push(...feature.deps);
-        if (feature.devDeps) {
+        if (feature.devDeps && res.language === "typescript") {
           devDeps.push(...feature.devDeps);
+        }
+
+        // If the feature provides files for the selected language, write them
+        const featureFiles = feature.getFiles
+          ? feature.getFiles(res.language)
+          : feature.files;
+        if (featureFiles) {
+          for (const file in featureFiles) {
+            const filePath = file.replace(/\.ts$/, `.${ext}`);
+            const fullPath = path.join(serviceRoot, filePath);
+            fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+            fs.writeFileSync(fullPath, featureFiles[file]);
+          }
         }
       }
     }
@@ -93,13 +127,16 @@ export const setupService = async (
       const baseAuth =
         await import("../../template/features/auth/base/inject.js");
       deps.push(...baseAuth.deps);
-      if (baseAuth.devDeps) {
+      if (baseAuth.devDeps && res.language === "typescript") {
         devDeps.push(...baseAuth.devDeps);
       }
 
-      const authFiles = baseAuth.getFiles ? baseAuth.getFiles(res.language) : baseAuth.files;
+      const authFiles = baseAuth.getFiles
+        ? baseAuth.getFiles(res.language)
+        : baseAuth.files;
       for (const file in authFiles) {
-        const fullPath = path.join(serviceRoot, file);
+        const filePath = file.replace(/\.ts$/, `.${ext}`);
+        const fullPath = path.join(serviceRoot, filePath);
         fs.mkdirSync(path.dirname(fullPath), { recursive: true });
         fs.writeFileSync(fullPath, authFiles[file]);
       }
@@ -132,25 +169,26 @@ export const setupService = async (
         `../../template/features/auth/${algo.hasher}/inject.js`
       );
       deps.push(...hashFeature.deps);
-      if (hashFeature.devDeps) {
+      if (hashFeature.devDeps && res.language === "typescript") {
         devDeps.push(...hashFeature.devDeps);
       }
 
-      for (const file in hashFeature.files) {
-        const ext = res.language === "javascript" ? ".js" : ".ts";
-        const filePath = file.replace(/\.ts$/, ext);
+      const hashFiles = hashFeature.getFiles
+        ? hashFeature.getFiles(res.language)
+        : hashFeature.files;
+      for (const file in hashFiles) {
+        const filePath = file.replace(/\.ts$/, `.${ext}`);
         const fullPath = path.join(serviceRoot, filePath);
         fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-        
-        let content = hashFeature.files[file];
-        if (res.language === "javascript") {
-          const { stripTypeScript } = await import("./ts-to-js.js");
-          content = stripTypeScript(content);
-        }
+        const content = hashFiles[file];
         fs.writeFileSync(fullPath, content);
       }
 
-      v1Imports.push(baseAuth.getImports ? baseAuth.getImports(res.language) : baseAuth.imports);
+      v1Imports.push(
+        baseAuth.getImports
+          ? baseAuth.getImports(res.language)
+          : baseAuth.imports,
+      );
       v1Routes.push(baseAuth.middleware);
     }
 
@@ -181,7 +219,7 @@ export const setupService = async (
       if (shouldIncludeAuth && res.auth) {
         rootContent = rootContent.replace(
           "/*__AUTH_ENDPOINT__*/",
-          'auth: "/v1/auth",',
+          'auth: "/api/v1/auth",',
         );
       } else {
         rootContent = rootContent.replace("/*__AUTH_ENDPOINT__*/", "");
@@ -266,14 +304,21 @@ export const setupService = async (
       let serverContent = fs.readFileSync(serverPath, "utf8");
 
       if (shouldIncludeAuth && res.auth) {
-        serverContent = serverContent.replace(
-          "/*__DB_IMPORT__*/",
-          'import { connectDB } from "./config";',
-        );
+        const language = res.language;
+        if (language === "javascript") {
+          serverContent = serverContent.replace(
+            "/*__DB_IMPORT__*/",
+            ", connectDB",
+          );
+        } else {
+          serverContent = serverContent.replace(
+            "/*__DB_IMPORT__*/",
+            'import { connectDB } from "./config";',
+          );
+        }
         serverContent = serverContent.replace(
           "/*__DB_CONNECT__*/",
-          `// Connect to MongoDB
-await connectDB();`,
+          `// Connect to MongoDB\nawait connectDB();`,
         );
       } else {
         serverContent = serverContent.replace("/*__DB_IMPORT__*/", "");
@@ -341,7 +386,7 @@ await connectDB();`,
     const tsconfig = JSON.parse(tsconfigContent);
 
     // Update baseUrl to allow import from the shared folder
-    tsconfig.compilerOptions.baseUrl = "."
+    tsconfig.compilerOptions.baseUrl = ".";
 
     // Update paths to include shared folder (works in both Docker and VS Code)
     tsconfig.compilerOptions.paths = {
@@ -380,14 +425,14 @@ await connectDB();`,
         serverContent = serverContent
           .replace('from "@/utils"', 'from "@/shared/utils"')
           .replace('from "@/config"', 'from "@/shared/config"');
-        
+
         // Update PORT to use service-specific environment variable
         const portEnvVar = `${serviceName.toUpperCase().replace(/-/g, "_")}_PORT`;
         serverContent = serverContent.replace(
           /const PORT = ENV\.PORT \|\| (\d+);/,
-          `const PORT = ENV.${portEnvVar} || $1;`
+          `const PORT = ENV.${portEnvVar} || $1;`,
         );
-        
+
         fs.writeFileSync(serverPath, serverContent);
       }
     }
@@ -496,14 +541,10 @@ await connectDB();`,
       );
     }
   } catch (error) {
-    console.error(
-      pc.red("\n❌ Failed to install dependencies"),
-    );
+    console.error(pc.red("\n❌ Failed to install dependencies"));
     console.error(pc.dim(`\nYou can install them later by running:`));
     console.error(
-      pc.cyan(
-        `   cd ${serviceName || res.sanitizedName} && npm install`,
-      ),
+      pc.cyan(`   cd ${serviceName || res.sanitizedName} && npm install`),
     );
     console.error(pc.dim("   Then run: npm run format\n"));
 

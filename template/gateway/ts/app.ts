@@ -29,12 +29,12 @@ app.get("/health", (_req: Request, res: Response) => {
 /*__ROUTES__*/
 
 // 404 handler
-app.use((req: Request, res: Response) => {
+app.use((_req: Request, res: Response) => {
   res.status(404).json({ error: "Route not found" });
 });
 
 // Error handler
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+app.use((err: Error, _req: Request, res: Response, next: NextFunction) => {
   logger.error("Gateway error:", err);
   res.status(500).json({ error: "Internal gateway error" });
 });

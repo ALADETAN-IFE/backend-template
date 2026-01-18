@@ -1,7 +1,6 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { stripTypeScript } from "../../../../bin/lib/ts-to-js.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -13,23 +12,28 @@ const utilsDir = path.join(__dirname, "../utils");
 const readDirFiles = (dir, prefix = "", language = "typescript") => {
   const files = {};
   const items = fs.readdirSync(dir);
-  
+  const ext = language === "javascript" ? ".js" : ".ts";
+
   for (const item of items) {
     const fullPath = path.join(dir, item);
-    const ext = language === "javascript" ? ".js" : ".ts";
-    const relativePath = path.join(prefix, item.replace(/\.ts$/, ext));
-    
-    if (fs.statSync(fullPath).isDirectory()) {
-      Object.assign(files, readDirFiles(fullPath, relativePath, language));
+    const isDir = fs.statSync(fullPath).isDirectory();
+    const desiredName = item.replace(/\.ts$|\.js$/, ext);
+    const chosenPath = isDir
+      ? fullPath
+      : fs.existsSync(path.join(dir, desiredName))
+      ? path.join(dir, desiredName)
+      : fullPath;
+
+    const relativePath = path.join(prefix, path.basename(desiredName));
+
+    if (isDir) {
+      Object.assign(files, readDirFiles(chosenPath, relativePath, language));
     } else {
-      let content = fs.readFileSync(fullPath, "utf8");
-      if (language === "javascript") {
-        content = stripTypeScript(content);
-      }
+      const content = fs.readFileSync(chosenPath, "utf8");
       files[relativePath] = content;
     }
   }
-  
+
   return files;
 };
 
@@ -39,20 +43,44 @@ import { ENV } from "./env";
 import { logger } from "@/utils";
 
 export const connectDB = async () => {
-  await mongoose.connect(ENV.MONGO_URI);
-  logger.log("db", "MongoDB connected");
+  try {
+    await mongoose.connect(ENV.MONGO_URI);
+    logger.log("db", "MongoDB connected");
+  } catch (error) {
+    logger.error("db", "MongoDB connection failed", error);
+    process.exit(1);
+  }
 };
 `;
-  
-  return language === "javascript" ? stripTypeScript(tsContent) : tsContent;
+
+  if (language === "javascript") {
+    return `const mongoose = require("mongoose");
+const { ENV } = require("./env");
+const { logger } = require("../utils");
+
+async function connectDB() {
+  try {
+    await mongoose.connect(ENV.MONGO_URI);
+    logger.log("db", "MongoDB connected");
+  } catch (error) {
+    logger.error("db", "MongoDB connection failed", error);
+    process.exit(1);
+  }
+}
+
+module.exports = { connectDB };
+`;
+  }
+
+  return tsContent;
 };
 
 const getHealthControllerContent = (language) => {
   const tsContent = `import { Request, Response } from "express";
 import mongoose from "mongoose";
-import { logger } from "@/utils";
+const { logger } = require("../../../utils");
 
-export const healthCheck = async (_: Request, res: Response) => {
+export const healthCheck = async (_req: Request, res: Response) => {
   const mongoState = mongoose.connection.readyState;
   const healthy = mongoState === 1;
 
@@ -76,8 +104,40 @@ export const healthCheck = async (_: Request, res: Response) => {
   });
 };
 `;
-  
-  return language === "javascript" ? stripTypeScript(tsContent) : tsContent;
+
+  if (language === "javascript") {
+    return `const mongoose = require("mongoose");
+const { logger } = require("../../../utils");
+
+async function healthCheck(_req, res) {
+  const mongoState = mongoose.connection.readyState;
+  const healthy = mongoState === 1;
+
+  const failed = [];
+  if (mongoState !== 1) failed.push("mongodb");
+
+  logger.info("Health", healthy ? "healthy" : "unhealthy");
+
+  return res.status(healthy ? 200 : 503).json({
+    status: healthy ? "healthy" : "unhealthy",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    services: {
+      mongodb: mongoState === 1 ? "connected" : "disconnected",
+      memory: {
+        rss: process.memoryUsage().rss,
+        heapUsed: process.memoryUsage().heapUsed,
+      },
+    },
+    failed,
+  });
+}
+
+module.exports = { healthCheck };
+`;
+  }
+
+  return tsContent;
 };
 
 export const getFiles = (language = "typescript") => {
@@ -85,7 +145,7 @@ export const getFiles = (language = "typescript") => {
   const moduleFiles = readDirFiles(modulesDir, "src/modules/v1/auth", language);
   const modelFiles = readDirFiles(modelsDir, "src/models", language);
   const utilFiles = readDirFiles(utilsDir, "src/utils", language);
-  
+
   return {
     ...moduleFiles,
     ...modelFiles,

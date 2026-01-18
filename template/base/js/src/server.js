@@ -1,7 +1,6 @@
-import app from "./app";
-import { ENV } from "./config";
-import { logger } from "@/utils";
-/*__DB_IMPORT__*/
+const app = require("./app");
+const { ENV/*__DB_IMPORT__*/ } = require("./config");
+const { logger } = require("./utils");
 
 const PORT = ENV.PORT || 3000;
 
@@ -14,6 +13,6 @@ const startServer = async () => {
 };
 
 startServer().catch((error) => {
-  logger.error("Server", "Failed to start server", error as Error);
+  logger.error("Server", "Failed to start server", error);
   process.exit(1);
 });

@@ -20,6 +20,29 @@ function getEnvironment() {
     : ENV.NODE_ENV;
 }
 
+console.log(
+  format("logger", colors.blue),
+  `Logger initialized for ${getEnvironment()} environment.`,
+);
+
+const requiredKeys = ENV && Object.keys(ENV).length ? Object.keys(ENV) : [];
+
+const missing = requiredKeys.filter(
+  (k) => ENV == null || (ENV as Record<string, undefined>)[k] === undefined || (ENV as Record<string, undefined>)[k] === "",
+);
+
+if (missing.length === requiredKeys.length) {
+  console.warn(
+    format("logger", colors.yellow),
+    "ENV values missing — make sure to set up your environment variables correctly.",
+  );
+} else if (missing.length > 0) {
+  console.warn(
+    format("logger", colors.yellow),
+    `Missing ENV keys: ${missing.join(", ")}`,
+  );
+}
+
 const logger = {
   log(tag: string, ...args: unknown[]) {
     if (getEnvironment() !== "development") return;

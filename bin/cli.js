@@ -7,7 +7,7 @@ import pc from "picocolors";
 import { getProjectConfig } from "./lib/prompts.js";
 import { setupService } from "./lib/service-setup.js";
 import { generateReadme } from "./lib/readme-generator.js";
-import { transformToJavaScript, transformDirectory } from "./lib/ts-to-js.js";
+// No TS->JS transform: templates contain language-specific folders (base/js, base/ts)
 import {
   generateDockerCompose,
   generatePm2Config,
@@ -27,7 +27,10 @@ const {
   isInMicroserviceProject,
 } = config;
 
-const base = path.join(__dirname, "../template/base");
+const baseRoot = (config.language === "javascript")
+  ? path.join(__dirname, "../template/base/js")
+  : path.join(__dirname, "../template/base/ts");
+const base = baseRoot;
 
 // Determine which services to create
 const servicesToCreate = [];
@@ -74,12 +77,7 @@ if (!isInMicroserviceProject && config.projectType === "microservice") {
     }
   }
   
-  // Transform to JavaScript if selected
-  if (config.language === "javascript") {
-    // console.log("\n🔄 Converting TypeScript to JavaScript...\n");
-    console.log(`\n${pc.cyan("⚙️  Setting up JavaScript project...")}\n`);
-    transformToJavaScript(target);
-  }
+  // No TypeScript-to-JavaScript conversion — templates include language-specific variants
 } else if (isInMicroserviceProject) {
   console.log(`\n${pc.cyan("🏗️  Adding service:")} ${pc.bold(servicesToCreate[0])}...\n`);
 }
@@ -127,9 +125,8 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
         const allServices = ["gateway", "health-service"];
         if (config.auth) allServices.push("auth-service");
         
-        const portEnvVars = allServices.map((service, index) => {
+        const portEnvVars = allServices.map((service) => {
           const isGateway = service === "gateway";
-          const port = isGateway ? 4000 : 4001 + index - 1;
           const envVarName = `${service.toUpperCase().replace(/-/g, "_")}_PORT`;
           // Don't add ! for JavaScript projects - it will cause syntax errors
           const assertion = config.language === "javascript" ? "" : "!";
@@ -312,27 +309,8 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
     );
   }
 
-  // Step 4: Transform to JavaScript if selected (before npm install)
-  if (config.language === "javascript") {
-    console.log(`\n${pc.cyan("⚙️  Converting microservices to JavaScript...")}\n`);
-    
-    // Transform shared folder
-    const sharedDir = path.join(target, "shared");
-    if (fs.existsSync(sharedDir)) {
-      transformDirectory(sharedDir);
-    }
-    
-    // Transform each service
-    for (const serviceName of allServices) {
-      const serviceRoot = path.join(target, "services", serviceName);
-      console.log(pc.dim(`   Transforming ${serviceName}...`));
-      transformToJavaScript(serviceRoot);
-    }
-    
-    console.log(pc.green("✓ JavaScript transformation complete\n"));
-  }
-
   // Step 5: Install dependencies for all services
+
   console.log(pc.cyan("\n📦 Installing dependencies for all services...\n"));
   let allInstallsSucceeded = true;
 
@@ -397,10 +375,14 @@ if (!isInMicroserviceProject && config.projectType === "monolith") {
   
   // Generate .env from .env.example for monolith only
   console.log(`${pc.cyan("📄 Setting up environment files...")}\n`);
-  const envExamplePath = path.join(target, ".env.example");
-  const envPath = path.join(target, ".env");
-  if (fs.existsSync(envExamplePath) && !fs.existsSync(envPath)) {
-    fs.copyFileSync(envExamplePath, envPath);
+  try {
+    const rootEnvExamplePath = path.join(target, ".env.example");
+    const rootEnvPath = path.join(target, ".env");
+    if (fs.existsSync(rootEnvExamplePath) && !fs.existsSync(rootEnvPath)) {
+      fs.copyFileSync(rootEnvExamplePath, rootEnvPath);
+    }
+  } catch (err) {
+    // Non-fatal; proceed even if we fail to write env files
   }
 }
 

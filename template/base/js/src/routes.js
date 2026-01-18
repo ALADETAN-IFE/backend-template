@@ -1,6 +1,6 @@
-import { Router } from "express";
-import modulesRouter from "./modules";
-import { notFound, rootHandler } from "./middlewares";
+const { Router } = require("express");
+const modulesRouter = require("./modules");
+const { notFound, rootHandler } = require("./middlewares");
 
 const router = Router();
 
@@ -12,5 +12,5 @@ router.use("/api", modulesRouter);
 // 404 handler - must be last
 router.use(notFound);
 
-export default router;
+module.exports = router;
 

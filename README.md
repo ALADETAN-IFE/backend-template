@@ -199,9 +199,9 @@ pm2 stop all
 
 ---
 
-## � TypeScript vs JavaScript
+## TypeScript vs JavaScript
 
-This CLI generates **TypeScript** projects by default but fully supports **JavaScript** through intelligent transformation:
+This CLI generates **TypeScript** projects by default but also includes explicit **JavaScript** templates. There is no fragile, on-the-fly TypeScript → JavaScript transform at runtime — the project templates include language-specific variants so the output is predictable and parseable in Node.js.
 
 ### TypeScript (Default)
 
@@ -212,12 +212,10 @@ This CLI generates **TypeScript** projects by default but fully supports **JavaS
 
 ### JavaScript
 
-- Automatically transpiled from TypeScript templates
-- Type annotations removed for cleaner code
-- Dependencies adjusted (no @types packages)
-- Same functionality, simpler syntax
-
-**Note**: When selecting JavaScript, the CLI transforms the TypeScript template on-the-fly, ensuring you get a production-ready JavaScript project with all the same features.
+- Pre-authored JavaScript (CommonJS) templates are included
+- No TypeScript annotations remain in generated `.js` files
+- DevDependencies that are TypeScript-only are omitted for JS projects
+- Same functionality with simpler runtime setup
 
 ---
 

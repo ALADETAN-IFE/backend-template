@@ -1,4 +1,8 @@
 // MongoDB connection will be added here when authentication is enabled
-export const connectDB = async () => {
+const connectDB = async () => {
   // Database connection placeholder
+};
+
+module.exports = {
+  connectDB,
 };

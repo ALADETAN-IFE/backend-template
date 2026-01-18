@@ -1,7 +1,6 @@
-import { Request, Response } from "express";
-import { logger } from "@/utils";
+const { logger } = require("../../../utils");
 
-export const healthCheck = async (_: Request, res: Response) => {
+const healthCheck = async (_, res) => {
   logger.info("Health", "healthy");
 
   return res.status(200).json({
@@ -15,4 +14,8 @@ export const healthCheck = async (_: Request, res: Response) => {
       },
     },
   });
+};
+
+module.exports = {
+  healthCheck
 };

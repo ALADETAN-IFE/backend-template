@@ -143,24 +143,85 @@ export const generateReadme = (config, serviceName = null) => {
   
   if (isMicroservice) {
     readme += `All requests go through the API Gateway at \`http://localhost:4000\`\n\n`;
-    readme += `### Health Service\n`;
-    readme += `- **GET** \`/health\` - Health check\n\n`;
-    
+
+    readme += `### Gateway Endpoints\n`;
+    readme += `- **GET** \`/\` - API information and available endpoints\n`;
+    readme += `- **GET** \`/health\` - Gateway health check\n`;
+
+    readme += `### Health Service (Proxied through Gateway)\n`;
+    readme += `- **GET** \`/api/v1/health\` - Service health check with system metrics\n`;
+    readme += `  - Returns: status, uptime, timestamp, memory usage\n\n`;
+
     if (auth) {
-      readme += `### Auth Service\n`;
-      readme += `- **POST** \`/auth/register\` - Register a new user\n`;
-      readme += `- **POST** \`/auth/login\` - Login user\n\n`;
+      readme += `### Auth Service (Proxied through Gateway)\n`;
+      readme += `- **POST** \`/api/v1/auth/register\` - Register a new user\n`;
+      readme += `- **POST** \`/api/v1/auth/login\` - Login user\n\n`;
     }
+    
+    readme += `### Direct Service Access (Development Only)\n`;
+    readme += `- **Gateway**: \`http://localhost:4000\`\n`;
+    readme += `- **Health Service**: \`http://localhost:4001/api/v1/health\`\n\n`;
+    if (auth) readme  += `- **Auth Service**: \`http://localhost:4002/api/v1/auth\`\n\n`;
+
+    readme += "### Example Requests\n";
+    readme += "```bash\n";
+    readme += "# Gateway info\n";
+    readme += "curl http://localhost:4000/\n\n";
+    readme += "# Gateway health\n";
+    readme += "curl http://localhost:4000/health\n\n";
+    readme += "# Health service (through gateway)\n";
+    readme += "curl http://localhost:4000/api/v1/health\n\n";
+    readme += "# Health service (direct access)\n";
+    readme += "curl http://localhost:4001/api/v1/health\n";
+    if (auth) {
+      readme += "\n# Register user (through gateway)\n";
+      readme += `curl -X POST http://localhost:4000/api/v1/auth/register \\\n`;
+      readme += `  -H "Content-Type: application/json" \\\n`;
+      readme += `  -d '{"username":"testuser","password":"password123"}'\n\n`;
+      readme += "# Login user (through gateway)\n";
+      readme += `curl -X POST http://localhost:4000/api/v1/auth/login \\\n`;
+      readme += `  -H "Content-Type: application/json" \\\n`;
+      readme += `  -d '{"username":"testuser","password":"password123"}'\n\n`;
+      readme += "# Register user (direct access)\n";
+      readme += `curl -X POST http://localhost:4002/api/v1/auth/register \\\n`;
+      readme += `  -H "Content-Type: application/json" \\\n`;
+      readme += `  -d '{"username":"testuser","password":"password123"}'\n\n`;
+      readme += "# Login user (direct access)\n";
+      readme += `curl -X POST http://localhost:4002/api/v1/auth/login \\\n`;
+      readme += `  -H "Content-Type: application/json" \\\n`;
+      readme += `  -d '{"username":"testuser","password":"password123"}'\n`;
+    }
+    readme += "```\n\n";
+    
   } else {
     readme += `Base URL: \`http://localhost:4000\`\n\n`;
     readme += `- **GET** \`/\` - Root endpoint (API info)\n`;
-    readme += `- **GET** \`/v1/health\` - Health check\n\n`;
+    readme += `- **GET** \`/api/v1/health\` - Health check\n\n`;
     
     if (auth) {
       readme += `### Authentication\n`;
-      readme += `- **POST** \`/v1/auth/register\` - Register a new user\n`;
-      readme += `- **POST** \`/v1/auth/login\` - Login user\n\n`;
+      readme += `- **POST** \`/api/v1/auth/register\` - Register a new user\n`;
+      readme += `- **POST** \`/api/v1/auth/login\` - Login user\n\n`;
     }
+
+    // Example requests for monolith
+    readme += "### Example Requests\n";
+    readme += "```bash\n";
+    readme += "# Root info\n";
+    readme += "curl http://localhost:4000/\n\n";
+    readme += "# Health check\n";
+    readme += "curl http://localhost:4000/api/v1/health\n\n";
+    if (auth) {
+      readme += "# Register user\n";
+      readme += `curl -X POST http://localhost:4000/api/v1/auth/register \\\n`;
+      readme += `  -H \"Content-Type: application/json\" \\\n`;
+      readme += `  -d '{"username":"testuser","password":"password123"}'\n\n`;
+      readme += "# Login user\n";
+      readme += `curl -X POST http://localhost:4000/api/v1/auth/login \\\n`;
+      readme += `  -H \"Content-Type: application/json\" \\\n`;
+      readme += `  -d '{"username":"testuser","password":"password123"}'\n\n`;
+    }
+    readme += "```\n\n";
   }
   
   // Project Structure
