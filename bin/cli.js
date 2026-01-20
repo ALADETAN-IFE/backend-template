@@ -371,9 +371,15 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
       description: config.description || "",
       private: true,
       scripts: {
-        dev: "docker-compose up",
-        stop: "docker-compose down",
-        restart: "docker-compose restart",
+        dev:
+          mode === "docker"
+            ? "docker-compose up"
+            : "npx pm2 start pm2.config.js && npx pm2 logs",
+        stop: mode === "docker" ? "docker-compose down" : "npx pm2 kill",
+        restart:
+          mode === "docker"
+            ? "docker-compose restart"
+            : "npx pm2 restart all && npx pm2 logs",
         lint: 'eslint "services/**/*.{js,ts,tsx}" "shared/**/*.{js,ts,tsx}"',
         format:
           'prettier --write "services/**/*.{js,ts,json}" "shared/**/*.{js,ts,json}"',
@@ -390,6 +396,16 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
         "eslint-config-prettier": "^10.1.8",
       },
     };
+
+    // Add runtime dependencies for non-Docker (PM2) mode
+    if (mode !== "docker") {
+      rootPackageJson.dependencies = {
+        dotenv: "^17.2.3",
+        pm2: "^6.0.14",
+        "ts-node": "^10.9.2",
+        "tsconfig-paths": "^4.2.0",
+      };
+    }
     fs.writeFileSync(
       rootPackageJsonPath,
       JSON.stringify(rootPackageJson, null, 2) + "\n",

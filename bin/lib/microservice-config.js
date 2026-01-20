@@ -89,11 +89,18 @@ export const generatePm2Config = (target, allServices) => {
       return {
         name: serviceName,
         script: `./services/${serviceName}/src/server.ts`,
+        interpreter: "node",
+        node_args:
+          "-r ts-node/register/transpile-only -r tsconfig-paths/register",
+        watch: true,
+        ignore_watch: ["node_modules", ".git", "logs"],
+        watch_delay: 1000,
         instances: 1,
         exec_mode: "fork",
         env: {
-          PORT: port
-        }
+          PORT: port,
+          TS_NODE_PROJECT: `services/${serviceName}/tsconfig.json`,
+        },
       };
     }),
   };

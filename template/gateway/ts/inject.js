@@ -10,13 +10,14 @@ export const generateGatewayRoutes = (services, mode = "docker") => {
       // Docker: use container name with internal port 4000
       // Non-docker: use localhost with mapped host port
       const host = mode === "docker" ? service : "localhost";
-      const servicePortEnv = `${servicePort}`
+      // Build a placeholder that will render as ${SERVICE_PORT} in the generated code
+      const servicePortPlaceholder = "${" + servicePort + "}";
 
       return `
 // Proxy to ${service}
 const ${servicePort} = ENV.${servicePort} || ${port}
 app.use("/api", createProxyMiddleware({
-  target: \`http://${host}:${servicePortEnv}/api\`,
+  target: \`http://${host}:${servicePortPlaceholder}/api\`,
   changeOrigin: true,
   on: {
     error: (err, req, res) => {
