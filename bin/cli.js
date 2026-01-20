@@ -786,11 +786,7 @@ if (isInMicroserviceProject) {
   );
   console.log(`\n${pc.cyan("📦 All services:")} ${allServices.join(", ")}`);
   console.log(`\n${pc.blue("💡 Next steps:")}`);
-  console.log(
-    mode === "docker"
-      ? `   ${pc.dim("1.")} Start services: ${pc.bold("npm run dev")}`
-      : `   ${pc.dim("1.")} Start services: ${pc.bold("pm2 start pm2.config.js")}`,
-  );
+  console.log( `   ${pc.dim("1.")} Start services: ${pc.bold("npm run dev")}`);
 } else if (config.projectType === "microservice") {
   console.log(`\n${pc.green("✅ Microservice Backend created successfully!")}`);
   console.log(
@@ -798,11 +794,7 @@ if (isInMicroserviceProject) {
   );
   console.log(`\n${pc.blue("💡 Next steps:")}`);
   console.log(`   ${pc.dim("1.")} cd ${pc.bold(sanitizedName)}`);
-  console.log(
-    mode === "docker"
-      ? `   ${pc.dim("2.")} Start services: ${pc.bold("npm run dev")}`
-      : `   ${pc.dim("2.")} Start services: ${pc.bold("pm2 start pm2.config.js")}`,
-  );
+  console.log(`   ${pc.dim("2.")} Start services: ${pc.bold("npm run dev")}`);
 } else {
   console.log(`\n${pc.green("✅ Monolith Backend created successfully!")}`);
   console.log(`\n${pc.blue("💡 Next steps:")}`);
