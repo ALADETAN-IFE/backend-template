@@ -3,7 +3,6 @@ import path from "path";
 
 export const generateReadme = (config, serviceName = null) => {
   const { projectType, mode, features = [], auth, sanitizedName } = config;
-  const isMonolith = projectType === "monolith";
   const isMicroservice = projectType === "microservice";
   
   let readme = `# ${serviceName || sanitizedName}\n\n`;
@@ -24,9 +23,20 @@ export const generateReadme = (config, serviceName = null) => {
     readme += `- **Deployment**: ${mode === "docker" ? "Docker" : "PM2"}\n`;
     readme += `- **Gateway**: Port 4000 (main entry point)\n`;
     readme += `- **Services**:\n`;
-    readme += `  - Gateway (port 4000)\n`;
-    readme += `  - Health Service (port 4001)\n`;
-    if (auth) readme += `  - Auth Service (port 4002)\n`;
+    const servicesList = (config.allServices && config.allServices.length)
+      ? config.allServices
+      : ["gateway", "health-service", ...(auth ? ["auth-service"] : [])];
+    servicesList.forEach((service, idx) => {
+      const isGateway = service === "gateway";
+      const port = isGateway
+        ? 4000
+        : 4001 + servicesList.filter((s) => s !== "gateway" && servicesList.indexOf(s) < idx).length;
+      const pretty = service
+        .split("-")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+      readme += `  - ${pretty} (port ${port})\n`;
+    });
     readme += `\n`;
   } else {
     readme += `- **Type**: Monolith API\n`;
@@ -108,11 +118,11 @@ export const generateReadme = (config, serviceName = null) => {
     readme += `### With Docker\n\n`;
     readme += `\`\`\`bash\n`;
     readme += `# Start all services\n`;
-    readme += `docker-compose up\n\n`;
+    readme += `npm run dev\n\n`;
     readme += `# Start in detached mode\n`;
-    readme += `docker-compose up -d\n\n`;
+    readme += `npm run dev -d\n\n`;
     readme += `# Stop all services\n`;
-    readme += `docker-compose down\n`;
+    readme += `npm stop\n`;
     readme += `\`\`\`\n\n`;
   } else if (isMicroservice && mode === "nodocker") {
     readme += `### With PM2\n\n`;
@@ -159,9 +169,18 @@ export const generateReadme = (config, serviceName = null) => {
     }
     
     readme += `### Direct Service Access (Development Only)\n`;
-    readme += `- **Gateway**: \`http://localhost:4000\`\n`;
-    readme += `- **Health Service**: \`http://localhost:4001/api/v1/health\`\n\n`;
-    if (auth) readme  += `- **Auth Service**: \`http://localhost:4002/api/v1/auth\`\n\n`;
+    const directServices = (config.allServices && config.allServices.length)
+      ? config.allServices
+      : ["gateway", "health-service", ...(auth ? ["auth-service"] : [])];
+    directServices.forEach((service) => {
+      const isGateway = service === "gateway";
+      const port = isGateway
+        ? 4000
+        : 4001 + directServices.filter((s) => s !== "gateway" && directServices.indexOf(s) < directServices.indexOf(service)).length;
+      const basePath = isGateway ? `` : `/api/v1`;
+      readme += `- **${service}**: \`http://localhost:${port}${basePath}\`\n`;
+    });
+    readme += `\n`;
 
     readme += "### Example Requests\n";
     readme += "```bash\n";
@@ -169,28 +188,28 @@ export const generateReadme = (config, serviceName = null) => {
     readme += "curl http://localhost:4000/\n\n";
     readme += "# Gateway health\n";
     readme += "curl http://localhost:4000/health\n\n";
-    readme += "# Health service (through gateway)\n";
-    readme += "curl http://localhost:4000/api/v1/health\n\n";
-    readme += "# Health service (direct access)\n";
-    readme += "curl http://localhost:4001/api/v1/health\n";
-    if (auth) {
-      readme += "\n# Register user (through gateway)\n";
-      readme += `curl -X POST http://localhost:4000/api/v1/auth/register \\\n`;
-      readme += `  -H "Content-Type: application/json" \\\n`;
-      readme += `  -d '{"username":"testuser","password":"password123"}'\n\n`;
-      readme += "# Login user (through gateway)\n";
-      readme += `curl -X POST http://localhost:4000/api/v1/auth/login \\\n`;
-      readme += `  -H "Content-Type: application/json" \\\n`;
-      readme += `  -d '{"username":"testuser","password":"password123"}'\n\n`;
-      readme += "# Register user (direct access)\n";
-      readme += `curl -X POST http://localhost:4002/api/v1/auth/register \\\n`;
-      readme += `  -H "Content-Type: application/json" \\\n`;
-      readme += `  -d '{"username":"testuser","password":"password123"}'\n\n`;
-      readme += "# Login user (direct access)\n";
-      readme += `curl -X POST http://localhost:4002/api/v1/auth/login \\\n`;
-      readme += `  -H "Content-Type: application/json" \\\n`;
-      readme += `  -d '{"username":"testuser","password":"password123"}'\n`;
+
+    // Direct access examples for non-gateway services
+    const exampleServices = (config.allServices && config.allServices.length)
+      ? config.allServices
+      : ["gateway", "health-service", ...(auth ? ["auth-service"] : [])];
+    exampleServices.forEach((service) => {
+      if (service === "gateway") return; // gateway already covered
+      const port = service === "gateway" ? 4000 : 4001 + exampleServices.filter((s) => s !== "gateway" && exampleServices.indexOf(s) < exampleServices.indexOf(service)).length;
+      readme += `# ${service} (direct access)\n`;
+      readme += `curl http://localhost:${port}/api/v1/health\n\n`;
+    });
+
+    if (auth && exampleServices.includes("auth-service")) {
+      const authPort = 4001 + exampleServices.filter((s) => s !== "gateway" && exampleServices.indexOf(s) < exampleServices.indexOf("auth-service")).length;
+      readme += "# Auth requests (through gateway)\n";
+      readme += `curl -X POST http://localhost:4000/api/v1/auth/register \\\n+  -H "Content-Type: application/json" \\\n+  -d '{"username":"testuser","password":"password123"}'\n\n`;
+      readme += `curl -X POST http://localhost:4000/api/v1/auth/login \\\n+  -H "Content-Type: application/json" \\\n+  -d '{"username":"testuser","password":"password123"}'\n\n`;
+      readme += `# Auth requests (direct access)\n`;
+      readme += `curl -X POST http://localhost:${authPort}/api/v1/auth/register \\\n+  -H "Content-Type: application/json" \\\n+  -d '{"username":"testuser","password":"password123"}'\n\n`;
+      readme += `curl -X POST http://localhost:${authPort}/api/v1/auth/login \\\n+  -H "Content-Type: application/json" \\\n+  -d '{"username":"testuser","password":"password123"}'\n\n`;
     }
+
     readme += "```\n\n";
     
   } else {
@@ -234,10 +253,12 @@ export const generateReadme = (config, serviceName = null) => {
     readme += `│   ├── config/         # Database, environment configs\n`;
     readme += `│   └── utils/          # Logger, error handlers\n`;
     readme += `├── services/\n`;
-    readme += `│   ├── gateway/        # API Gateway (port 4000)\n`;
-    readme += `│   ├── health-service/ # Health checks (port 4001)\n`;
-    if (auth) readme += `│   └── auth-service/   # Authentication (port 4002)\n`;
-    else readme += `│   └── ...\n`;
+    const projectServices = (config.allServices && config.allServices.length)
+      ? config.allServices
+      : ["gateway", "health-service", ...(auth ? ["auth-service"] : [])];
+    projectServices.forEach((service) => {
+      readme += `│   ├── ${service}/\n`;
+    });
     readme += `├── ${mode === "docker" ? "docker-compose.yml" : "pm2.config.js"}\n`;
     readme += `├── .husky/             # Git hooks\n`;
     readme += `└── package.json        # Root package.json\n`;
@@ -265,8 +286,8 @@ export const generateReadme = (config, serviceName = null) => {
   readme += `## Available Scripts\n\n`;
   if (isMicroservice) {
     if (mode === "docker") {
-      readme += `- \`docker-compose up\` - Start all services\n`;
-      readme += `- \`docker-compose down\` - Stop all services\n`;
+      readme += `- \`npm run dev\` - Start all services\n`;
+      readme += `- \`npm stop\` - Stop all services\n`;
       readme += `- \`docker-compose logs -f [service-name]\` - View service logs\n`;
     } else {
       readme += `- \`pm2 start pm2.config.js\` - Start all services\n`;
@@ -298,9 +319,17 @@ export const generateReadme = (config, serviceName = null) => {
   }
   readme += `\n`;
   
+  // Scaffold attribution
+  readme += `\n`;
+  readme += `## About this Scaffold\n\n`;
+  readme += `This project was generated using the @ifecodes/backend-template scaffold. `;
+  readme += `You can recreate or customize this scaffold using the CLI: \n\n`;
+  readme += `- Run without installing (recommended): \`npx ifecodes-template\`\n`;
+  readme += `- Install globally: \`npm i -g @ifecodes/backend-template\` and run \`ifecodes-template\`\n\n`;
+
   // License
   readme += `## License\n\n`;
   readme += `MIT\n`;
-  
+
   return readme;
 };

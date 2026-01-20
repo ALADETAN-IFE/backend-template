@@ -1,5 +1,6 @@
 import express, { Request, Response, NextFunction } from "express";
 import { createProxyMiddleware } from "http-proxy-middleware";
+import { ENV } from "@/shared/config";
 import { logger } from "@/shared/utils";
 
 const app = express();

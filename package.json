@@ -20,7 +20,7 @@
   "bugs": {
     "url": "https://github.com/ALADETAN-IFE/backend-template/issues"
   },
-  "homepage": "https://github.com/ALADETAN-IFE/backend-template#readme",
+  "homepage": "https://backend-template-generator.vercel.app",
   "publishConfig": {
     "access": "public"
   },

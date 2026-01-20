@@ -28,7 +28,7 @@ console.log(
 const requiredKeys = ENV && Object.keys(ENV).length ? Object.keys(ENV) : [];
 
 const missing = requiredKeys.filter(
-  (k) => ENV == null || (ENV as Record<string, undefined>)[k] === undefined || (ENV as Record<string, undefined>)[k] === "",
+  (k) => ENV == null || (ENV as Record<string, string | undefined>)[k] === undefined || (ENV as Record<string, string | undefined>)[k] === "",
 );
 
 if (missing.length === requiredKeys.length) {

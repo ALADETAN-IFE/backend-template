@@ -36,11 +36,36 @@ export const setupService = async (
   // Detect file extension (ts or js)
   const ext = getFileExtension(serviceRoot);
 
+  // Remove workspace-level config files from service (they should live at root)
+  try {
+    const serviceConfigFiles = [
+      ".prettierrc",
+      ".prettierignore",
+      ".eslintrc.json",
+      "eslint.config.js",
+      "husky",
+    ];
+    for (const f of serviceConfigFiles) {
+      const p = path.join(serviceRoot, f);
+      if (fs.existsSync(p)) {
+        // Remove file or directory
+        const stat = fs.statSync(p);
+        if (stat.isDirectory()) fs.rmSync(p, { recursive: true, force: true });
+        else fs.rmSync(p, { force: true });
+      }
+    }
+  } catch (err) {
+    // Non-fatal
+  }
+
   // Ensure service-level gitignore is renamed immediately after template copy
   try {
     const serviceGitignore = path.join(serviceRoot, "gitignore");
     const serviceDotGitignore = path.join(serviceRoot, ".gitignore");
-    if (fs.existsSync(serviceGitignore) && !fs.existsSync(serviceDotGitignore)) {
+    if (
+      fs.existsSync(serviceGitignore) &&
+      !fs.existsSync(serviceDotGitignore)
+    ) {
       fs.renameSync(serviceGitignore, serviceDotGitignore);
     }
   } catch (err) {
@@ -49,9 +74,11 @@ export const setupService = async (
 
   // Special handling for gateway service
   if (serviceName === "gateway") {
+    const tmplLang = res.language === "javascript" ? "js" : "ts";
     const gatewayModule = await import(
-      `../../template/gateway/${res.language}/inject.js`
+      `../../template/gateway/${tmplLang}/inject.js`
     );
+
     deps.push(...gatewayModule.gatewayDeps);
 
     // Copy gateway-specific files
@@ -63,7 +90,7 @@ export const setupService = async (
     const templateExt = res.language === "javascript" ? ".js" : ".ts";
     const templateDir = path.join(
       __dirname,
-      `../../template/gateway/${res.language}`,
+      `../../template/gateway/${tmplLang}`,
     );
     const gatewayAppContent = fs.readFileSync(
       path.join(templateDir, `app${templateExt}`),
@@ -86,9 +113,13 @@ export const setupService = async (
     const routesPath = path.join(serviceRoot, `src/routes.${ext}`);
     const modulesPath = path.join(serviceRoot, "src/modules");
     const middlewaresPath = path.join(serviceRoot, "src/middlewares");
+    const configPath = path.join(serviceRoot, `src/config`);
+    const utilPath = path.join(serviceRoot, `src/utils`);
 
     if (fs.existsSync(routesPath)) fs.rmSync(routesPath);
     if (fs.existsSync(modulesPath)) fs.rmSync(modulesPath, { recursive: true });
+    if (fs.existsSync(configPath)) fs.rmSync(configPath, { recursive: true });
+    if (fs.existsSync(utilPath)) fs.rmSync(utilPath, { recursive: true });
     if (fs.existsSync(middlewaresPath))
       fs.rmSync(middlewaresPath, { recursive: true });
   } else {
@@ -279,7 +310,7 @@ export const setupService = async (
         envContent = envContent.replace("/*__ALLOWED_ORIGIN__*/", "");
       }
 
-      // Add MONGO_URI if auth is enabled
+      // Add MONGO_URI and JWT_SECRET if auth is enabled
       if (shouldIncludeAuth && res.auth) {
         const assertion = res.language === "javascript" ? "" : "!";
         envContent = envContent.replace(
@@ -374,7 +405,8 @@ export const setupService = async (
   } // End of else block for non-gateway services
 
   // Update tsconfig.json for microservices to support @/ alias with shared folder
-  if (res.projectType === "microservice") {
+  // Also run when adding a service into an existing microservice project
+  if (res.projectType === "microservice" || res.isInMicroserviceProject) {
     const tsconfigPath = path.join(serviceRoot, "tsconfig.json");
     let tsconfigContent = fs.readFileSync(tsconfigPath, "utf8");
 
@@ -421,17 +453,67 @@ export const setupService = async (
       // Update server.ts to use shared imports
       const serverPath = path.join(serviceRoot, `src/server.${ext}`);
       if (fs.existsSync(serverPath)) {
-        let serverContent = fs.readFileSync(serverPath, "utf8");
-        serverContent = serverContent
-          .replace('from "@/utils"', 'from "@/shared/utils"')
-          .replace('from "@/config"', 'from "@/shared/config"');
+        // Determine a single port string for this specific service.
+        // Gateway should use 4000; other services use 4001, 4002, ...
+        let serverPort = "3000";
+        if (Array.isArray(allServices) && allServices.length) {
+          if (serviceName === "gateway") {
+            serverPort = "4000";
+          } else {
+            const idx = allServices.indexOf(serviceName);
+            if (idx !== -1) {
+              // Count non-gateway services before this one to compute offset
+              const nonGatewayBefore = allServices
+                .slice(0, idx)
+                .filter((s) => s !== "gateway").length;
+              serverPort = `${4001 + nonGatewayBefore}`;
+            } else {
+              // Fallback: assign next available port after 4000
+              serverPort = `${4001 + allServices.length - 1}`;
+            }
+          }
+        }
 
-        // Update PORT to use service-specific environment variable
+        let serverContent = fs.readFileSync(serverPath, "utf8");
+
+        // Normalize imports: accept @/ or relative imports and rewrite to shared imports
+        serverContent = serverContent
+          .replace(
+            /from\s+["'](?:@\/utils|\.\/utils|\.\.\/utils)["']/g,
+            'from "@/shared/utils"',
+          )
+          .replace(
+            /from\s+["'](?:@\/config|\.\/config|\.\.\/config)["']/g,
+            'from "@/shared/config"',
+          );
+
+        // Update PORT to use service-specific environment variable and a correct default port.
         const portEnvVar = `${serviceName.toUpperCase().replace(/-/g, "_")}_PORT`;
-        serverContent = serverContent.replace(
-          /const PORT = ENV\.PORT \|\| (\d+);/,
-          `const PORT = ENV.${portEnvVar} || $1;`,
-        );
+        const portRegex = /const\s+PORT\s*=\s*ENV\.PORT\s*\|\|\s*(\d+)\s*;/;
+        if (portRegex.test(serverContent)) {
+          serverContent = serverContent.replace(
+            portRegex,
+            `const PORT = ENV.${portEnvVar} || ${serverPort};`,
+          );
+        } else {
+          // Fallback: replace a simple numeric default or a bare PORT assignment
+          const simplePortRegex = /const\s+PORT\s*=\s*(\d+)\s*;/;
+          if (simplePortRegex.test(serverContent)) {
+            serverContent = serverContent.replace(
+              simplePortRegex,
+              `const PORT = ENV.${portEnvVar} || ${serverPort};`,
+            );
+          } else {
+            // Last resort: append a PORT assignment near the top after imports
+            const importEnd = serverContent.indexOf("\n\n");
+            const insertPos = importEnd === -1 ? 0 : importEnd + 2;
+            const portLine = `const PORT = ENV.${portEnvVar} || ${serverPort};\n\n`;
+            serverContent =
+              serverContent.slice(0, insertPos) +
+              portLine +
+              serverContent.slice(insertPos);
+          }
+        }
 
         fs.writeFileSync(serverPath, serverContent);
       }
@@ -476,14 +558,6 @@ export const setupService = async (
       .filter(Boolean);
   }
 
-  // Add Node.js native path aliasing for JavaScript projects
-  // This replaces TypeScript's tsconfig paths with Node's native imports field
-  if (res.language === "javascript") {
-    finalPackageJson.imports = {
-      "#/*": "./src/*",
-    };
-  }
-
   // Add --poll flag to dev script for Docker mode (fixes watch mode in Docker on Windows)
   if (res.projectType === "microservice" && res.mode === "docker") {
     if (finalPackageJson.scripts && finalPackageJson.scripts.dev) {
@@ -491,6 +565,55 @@ export const setupService = async (
         "ts-node-dev --respawn --transpile-only",
         "ts-node-dev --respawn --transpile-only --poll",
       );
+    }
+  }
+
+  // If creating microservices, do not install workspace-level devDependencies per service
+  if (res.projectType === "microservice") {
+    if (finalPackageJson.devDependencies) {
+      const toRemove = [
+        "prettier",
+        "eslint",
+        "eslint-config-prettier",
+        "@typescript-eslint/eslint-plugin",
+        "@typescript-eslint/parser",
+        "husky",
+      ];
+      for (const dep of toRemove) {
+        if (finalPackageJson.devDependencies[dep]) {
+          delete finalPackageJson.devDependencies[dep];
+        }
+      }
+
+      // Remove @types/* from JavaScript services; keep for TypeScript
+      if (res.language === "javascript") {
+        for (const key of Object.keys(finalPackageJson.devDependencies)) {
+          if (key.startsWith("@types/"))
+            delete finalPackageJson.devDependencies[key];
+        }
+      }
+
+      // If devDependencies becomes empty, remove the field
+      if (Object.keys(finalPackageJson.devDependencies).length === 0) {
+        delete finalPackageJson.devDependencies;
+      }
+    }
+  }
+
+  // Remove per-service prepare script (which runs husky) for microservice workspaces
+  if (res.projectType === "microservice" || res.isInMicroserviceProject) {
+    if (finalPackageJson.scripts && finalPackageJson.scripts.prepare) {
+      delete finalPackageJson.scripts.prepare;
+    }
+    // Also remove per-service lint/format/check-format scripts (workspace-level tooling lives at root)
+    if (finalPackageJson.scripts) {
+      delete finalPackageJson.scripts.lint;
+      delete finalPackageJson.scripts.format;
+      delete finalPackageJson.scripts["check-format"];
+      // If scripts becomes empty, remove the field
+      if (Object.keys(finalPackageJson.scripts).length === 0) {
+        delete finalPackageJson.scripts;
+      }
     }
   }
 

@@ -4,7 +4,7 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export const generateDockerCompose = (target, allServices) => {
+export const generateDockerCompose = (target, allServices, projectname) => {
   const dockerCompose = {
     services: {},
   };
@@ -35,7 +35,7 @@ export const generateDockerCompose = (target, allServices) => {
         dockerfile: "Dockerfile"
       },
       image: `${serviceName}:latest`,
-      container_name: serviceName,
+      container_name: projectname + "_" + serviceName,
       ports: [
         `\${${envVarName}:-${port}}:\${${envVarName}:-${port}}`,
       ],
@@ -65,6 +65,16 @@ export const generateDockerCompose = (target, allServices) => {
             config.environment.map((e) => `      - ${e}`).join("\n") + "\n" +
             `    volumes:\n` +
             config.volumes.map((v) => `      - ${v}`).join("\n")
+        )
+        .join("\n")
+      +
+      "\n\n" +
+      // Add x-watch section to help file watchers map service src and shared folders
+      `x-watch:\n` +
+      allServices
+        .map(
+          (name) =>
+            `  ${name}:\n    - ./services/${name}/src\n    - ./shared`
         )
         .join("\n")
   );

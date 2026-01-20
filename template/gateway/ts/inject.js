@@ -4,18 +4,19 @@ export const generateGatewayRoutes = (services, mode = "docker") => {
   const routes = services
     .filter((s) => s !== "gateway")
     .map((service, index) => {
+      const servicePort = `${service.toUpperCase().replace(/-/g, "_")}_PORT`;
       const port = 4001 + index; // Host port mapping: gateway=4000, services start at 4001
-      const routePath = service.replace("-service", "");
 
       // Docker: use container name with internal port 4000
       // Non-docker: use localhost with mapped host port
       const host = mode === "docker" ? service : "localhost";
-      const targetPort = mode === "docker" ? 4000 : port;
+      const servicePortEnv = `${servicePort}`
 
       return `
 // Proxy to ${service}
+const ${servicePort} = ENV.${servicePort} || ${port}
 app.use("/api", createProxyMiddleware({
-  target: "http://${host}:${targetPort}/api",
+  target: \`http://${host}:${servicePortEnv}/api\`,
   changeOrigin: true,
   on: {
     error: (err, req, res) => {

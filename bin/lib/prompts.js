@@ -215,6 +215,11 @@ export const getProjectConfig = async () => {
     mode = res.mode;
   }
 
+  // If adding to an existing microservice project, normalize the provided service name
+  if (isInMicroserviceProject && res.serviceName) {
+    res.serviceName = normalizeServiceName(res.serviceName);
+  }
+
   return {
     ...res,
     sanitizedName,
@@ -224,3 +229,13 @@ export const getProjectConfig = async () => {
     isInMicroserviceProject,
   };
 };
+
+// Normalize serviceName for existing microservice projects: ensure it ends with '-service'
+// and is kebab-cased/lowercase for consistency.
+function normalizeServiceName(name) {
+  if (!name) return name;
+  let svc = String(name).trim().toLowerCase();
+  svc = svc.replace(/\s+/g, "-").replace(/[^a-z0-9\-]/g, "");
+  if (!svc.endsWith("-service")) svc = `${svc}-service`;
+  return svc;
+}
