@@ -1,0 +1,79 @@
+Example workspace (no auth)
+
+This file shows example layouts produced by the CLI when authentication is disabled (no auth). It includes both microservice (Docker / PM2) and monolith outputs so you can compare.
+
+Microservice (no auth)
+
+my-workspace/
+  services/
+    gateway/
+    health-service/
+  shared/
+    config/
+    utils/
+  package.json
+  README.md
+  .env.example
+
+Notes:
+- For Docker mode the workspace includes `docker-compose.yml` at the repository root.
+- For PM2 (nodocker) mode the workspace includes `pm2.config.js` at the repository root.
+- If auth is enabled during generation, an additional `auth-service/` will appear under `services/`.
+
+Example Microservice (Docker mode):
+
+my-workspace/
+  services/
+    gateway/
+    health-service/
+  shared/
+    config/
+    utils/
+  docker-compose.yml
+  package.json
+  README.md
+  .env.example
+
+Example Microservice (PM2 mode):
+
+my-workspace/
+  services/
+    gateway/
+    health-service/
+  shared/
+    config/
+    utils/
+  pm2.config.js
+  package.json
+  README.md
+  .env.example
+
+Monolith (no auth)
+
+This is the standard single-repository monolith layout generated when `projectType` is `monolith` and auth is disabled.
+
+my-monolith-app/
+  src/
+    config/
+    middlewares/
+    modules/
+      v1/
+        health/
+    utils/
+    app.ts (or app.js)
+    routes.ts (or routes.js)
+    server.ts (or server.js)
+  package.json
+  README.md
+  .env.example
+
+Notes for monolith:
+- If you enable auth the monolith will include `src/modules/v1/auth/` and `src/models/` for user models.
+- The monolith ships with a single `package.json` and top-level tooling (ESLint, Prettier, Husky) configured at the repository root.
+
+Common notes
+
+- `shared/config/` contains environment mapping and shared configuration used by services or the monolith.
+- `shared/utils/` contains logger and helper utilities.
+- The root `README.md` is generated and updated to reflect created services when you add new services in microservice mode.
+

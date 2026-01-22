@@ -5,6 +5,7 @@ import { execSync } from "child_process";
 import { fileURLToPath } from "url";
 import pc from "picocolors";
 import { getProjectConfig } from "./lib/prompts.js";
+import prompts from "prompts";
 import { setupService } from "./lib/service-setup.js";
 import { generateReadme } from "./lib/readme-generator.js";
 // No TS->JS transform: templates contain language-specific folders (base/js, base/ts)
@@ -256,16 +257,60 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
     }
   }
 
+  const servicesToSetup = [];
   for (const serviceName of servicesToCreate) {
     const serviceRoot = path.join(target, "services", serviceName);
 
-    if (fs.existsSync(serviceRoot)) {
-      console.error(`\n❌ Error: Service '${serviceName}' already exists!`);
-      process.exit(1);
+    // Check for exact or alternate folder conflicts (e.g., 'order' vs 'order-service')
+    const altName = serviceName.endsWith("-service")
+      ? serviceName.replace(/-service$/, "")
+      : `${serviceName}-service`;
+    const altPath = path.join(target, "services", altName);
+    let conflictPath = null;
+    if (fs.existsSync(serviceRoot)) conflictPath = serviceRoot;
+    else if (fs.existsSync(altPath)) conflictPath = altPath;
+
+    if (conflictPath) {
+      const rel = path.relative(target, conflictPath);
+      const resp = await prompts({
+        type: "select",
+        name: "action",
+        message: `Service directory '${rel}' already exists and conflicts with requested '${serviceName}'. Choose action:`,
+        choices: [
+          { title: "Abort generation", value: "abort" },
+          { title: `Skip creating '${serviceName}'`, value: "skip" },
+          {
+            title: `Overwrite '${rel}' with '${serviceName}'`,
+            value: "overwrite",
+          },
+        ],
+        initial: 0,
+      });
+
+      if (!resp.action || resp.action === "abort") {
+        console.log(pc.red("Aborting."));
+        process.exit(1);
+      }
+      if (resp.action === "skip") {
+        console.log(pc.yellow(`Skipping ${serviceName}`));
+        continue;
+      }
+      if (resp.action === "overwrite") {
+        try {
+          fs.rmSync(conflictPath, { recursive: true, force: true });
+        } catch (e) {
+          console.error(
+            pc.red(`Failed to remove existing path: ${conflictPath}`),
+          );
+          process.exit(1);
+        }
+      }
     }
 
     console.log(`\n🔨 Setting up ${serviceName}...`);
     fs.cpSync(base, serviceRoot, { recursive: true });
+    // track which services we actually created/overwrote so we can run setupService for them
+    servicesToSetup.push(serviceName);
 
     // Remove .env and .env.example from microservices (environment variables come from docker-compose/pm2)
     const envPath = path.join(serviceRoot, ".env");
@@ -571,24 +616,28 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
 
         // Attempt several fallback strategies to inject port variables:
         // 1. Replace explicit placeholder if present in template
-        // 2. Insert right after the first object opening brace
-        // 3. Append to the end as a last resort
+        // 2. Insert right after the first object opening brace (or replace placeholder)
         if (envContent.includes("/*__PORTS__*/")) {
-          envContent = envContent.replace("/*__PORTS__*/", portEnvVars);
+          envContent = envContent.replace(
+            "/*__PORTS__*/",
+            "/*__PORTS__*/\n" + portEnvVars,
+          );
         } else {
           // Fallback: find the opening brace of the exported ENV object and insert after it
           const braceIndex = envContent.indexOf("{");
           if (braceIndex !== -1) {
             const insertPos =
               envContent.indexOf("\n", braceIndex) + 1 || braceIndex + 1;
+            // insert a stable placeholder comment followed by the ports block
             envContent =
               envContent.slice(0, insertPos) +
+              "  /*__PORTS__*/\n" +
               portEnvVars +
               "\n" +
               envContent.slice(insertPos);
           } else {
-            // Final fallback: append to the end
-            envContent = envContent + "\n" + portEnvVars;
+            // Final fallback: append a placeholder and the ports to the end
+            envContent = envContent + "\n/*__PORTS__*/\n" + portEnvVars;
           }
         }
 
@@ -620,23 +669,85 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
               )
           : allServices;
 
-        let rootENVContent = `# Environment Configuration\nNODE_ENV=development\n\n`;
-        svcList.forEach((service, index) => {
-          const isGateway = service === "gateway";
-          const port = isGateway
-            ? 4000
-            : 4001 +
-              svcList.filter((s, i) => s !== "gateway" && i < index).length;
-          const envVarName = `${service.toUpperCase().replace(/-/g, "_")}_PORT`;
-          const serviceNamePretty = service
-            .split("-")
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(" ");
-          rootENVContent += `# ${serviceNamePretty}\n${envVarName}=${port}\n\n`;
-        });
+        // Update only .env.example: preserve runtime .env (don't overwrite user changes)
+        try {
+          const envExamplePath = path.join(target, ".env.example");
+          const servicesPorts = svcList.map((service, index) => {
+            const isGateway = service === "gateway";
+            const port = isGateway
+              ? 4000
+              : 4001 +
+                svcList.filter((s, i) => s !== "gateway" && i < index).length;
+            const envVarName = `${service.toUpperCase().replace(/-/g, "_")}_PORT`;
+            const serviceNamePretty = service
+              .split("-")
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(" ");
+            return `# ${serviceNamePretty}\n${envVarName}=${port}\n`;
+          });
 
-        fs.writeFileSync(path.join(target, ".env"), rootENVContent);
-        fs.writeFileSync(path.join(target, ".env.example"), rootENVContent);
+          const portsBlock = servicesPorts.join("\n");
+
+          let exampleContent = "";
+          if (fs.existsSync(envExamplePath)) {
+            exampleContent = fs.readFileSync(envExamplePath, "utf8");
+
+            // Remove existing *_PORT lines and any immediate preceding single-line comment
+            const lines = exampleContent.split(/\r?\n/);
+            const filtered = [];
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i];
+              const next = lines[i + 1];
+              if (next && /^[A-Z0-9_]+_PORT=/.test(next.trim())) {
+                // skip this line if it's a comment immediately preceding a _PORT assignment
+                i++; // skip next as well
+                continue;
+              }
+              if (/^[A-Z0-9_]+_PORT=/.test(line.trim())) {
+                // skip existing port assignment
+                continue;
+              }
+              filtered.push(line);
+            }
+
+            exampleContent = filtered.join("\n");
+          } else {
+            // create minimal header if example file doesn't exist
+            exampleContent = `# Environment Configuration\nNODE_ENV=development\n\n`;
+          }
+
+          // Ensure NODE_ENV line exists and insert portsBlock after it
+          const nodeEnvRegex = /^NODE_ENV=.*$/m;
+          if (nodeEnvRegex.test(exampleContent)) {
+            exampleContent = exampleContent.replace(
+              nodeEnvRegex,
+              (m) => `${m}\n\n${portsBlock}\n`,
+            );
+          } else {
+            // Prepend header and ports
+            exampleContent =
+              `# Environment Configuration\nNODE_ENV=development\n\n${portsBlock}\n` +
+              exampleContent;
+          }
+
+          fs.writeFileSync(envExamplePath, exampleContent);
+          // Inform the user about the new ports and remind them to update their runtime .env if needed
+          try {
+            console.log(
+              pc.cyan("\n🔧 Updated .env.example with service port entries:\n"),
+            );
+            console.log(pc.green(portsBlock));
+            console.log(
+              pc.dim(
+                "If you keep a runtime .env with custom overrides, do NOT overwrite it.\nPlease copy any new *_PORT entries from .env.example into .env as appropriate.",
+              ),
+            );
+          } catch (e) {
+            // non-fatal if logging fails
+          }
+        } catch (e) {
+          // non-fatal
+        }
       } catch (e) {
         // non-fatal
       }
@@ -786,7 +897,7 @@ if (isInMicroserviceProject) {
   );
   console.log(`\n${pc.cyan("📦 All services:")} ${allServices.join(", ")}`);
   console.log(`\n${pc.blue("💡 Next steps:")}`);
-  console.log( `   ${pc.dim("1.")} Start services: ${pc.bold("npm run dev")}`);
+  console.log(`   ${pc.dim("1.")} Start services: ${pc.bold("npm run dev")}`);
 } else if (config.projectType === "microservice") {
   console.log(`\n${pc.green("✅ Microservice Backend created successfully!")}`);
   console.log(
