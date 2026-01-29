@@ -346,20 +346,36 @@ npm link
 
 ## 📄 License
 
-MIT
+Apache License 2.0
+
+Copyright © 2026 Aladetan Fortune Ifeloju (IfeCodes)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this project except in compliance with the License.
+You may obtain a copy of the License at:
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 ---
 
 ## ✨ Author
 
 **Aladetan Fortune Ifeloju (IfeCodes)**  
-Full Stack Developer & TechPreneur
+Full‑Stack Developer & TechPreneur  
 
-- GitHub: [@ALADETAN-IFE](https://github.com/ALADETAN-IFE)
-- Twitter: [@IfeCodes](https://twitter.com/IfeCodes_)
+- GitHub: [@ALADETAN-IFE](https://github.com/ALADETAN-IFE)  
+- Twitter/X: [@IfeCodes](https://twitter.com/IfeCodes_)
 
 ---
 
 ## 🙏 Acknowledgments
 
 Built with ❤️ for the developer community to accelerate backend development.
+
+Special thanks to contributors and organizations who adopt, extend, and support this project while respecting its license and attribution.
