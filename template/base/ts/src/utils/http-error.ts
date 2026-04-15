@@ -14,6 +14,12 @@ export class BadRequestError extends HttpError {
   }
 }
 
+export class UnprocessableEntityError extends HttpError {
+  constructor(message = "Unprocessable Entity") {
+    super(422, message);
+  }
+}
+
 export class UnauthorizedError extends HttpError {
   constructor(message = "Unauthorized") {
     super(401, message);
@@ -35,6 +41,18 @@ export class NotFoundError extends HttpError {
 export class ConflictError extends HttpError {
   constructor(message = "Conflict") {
     super(409, message);
+  }
+}
+
+export class TooManyRequestsError extends HttpError {
+  constructor(message = "Too Many Requests") {
+    super(429, message);
+  }
+}
+
+export class BadGatewayError extends HttpError {
+  constructor(message = "Bad Gateway") {
+    super(502, message);
   }
 }
 

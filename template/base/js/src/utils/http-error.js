@@ -12,6 +12,12 @@ class BadRequestError extends HttpError {
   }
 }
 
+class UnprocessableEntityError extends HttpError {
+  constructor(message = "Unprocessable Entity") {
+    super(422, message);
+  }
+}
+
 class UnauthorizedError extends HttpError {
   constructor(message = "Unauthorized") {
     super(401, message);
@@ -36,6 +42,18 @@ class ConflictError extends HttpError {
   }
 }
 
+class TooManyRequestsError extends HttpError {
+  constructor(message = "Too Many Requests") {
+    super(429, message);
+  }
+}
+
+class BadGatewayError extends HttpError {
+  constructor(message = "Bad Gateway") {
+    super(502, message);
+  }
+}
+
 class InternalServerError extends HttpError {
   constructor(message = "Internal Server Error") {
     super(500, message);
@@ -45,9 +63,12 @@ class InternalServerError extends HttpError {
 module.exports = {
   HttpError,
   BadRequestError,
+  UnprocessableEntityError,
   UnauthorizedError,
   ForbiddenError,
   NotFoundError,
   ConflictError,
+  TooManyRequestsError,
+  BadGatewayError,
   InternalServerError,
 };

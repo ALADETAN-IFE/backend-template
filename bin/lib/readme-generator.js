@@ -1,9 +1,9 @@
-import fs from "fs";
-import path from "path";
-
 export const generateReadme = (config, serviceName = null) => {
   const { projectType, mode, features = [], auth, sanitizedName } = config;
   const isMicroservice = projectType === "microservice";
+  const isTypeScript = config.language === "typescript";
+  const languageLabel = isTypeScript ? "TypeScript" : "JavaScript";
+  const monolithFileExt = isTypeScript ? "ts" : "js";
   
   let readme = `# ${serviceName || sanitizedName}\n\n`;
   
@@ -14,9 +14,6 @@ export const generateReadme = (config, serviceName = null) => {
     readme += `A microservices-based backend application.\n\n`;
   } else {
     readme += `A monolithic backend API application.\n\n`;
-  }
-  
-  // Architecture
   readme += `## Architecture\n\n`;
   if (isMicroservice) {
     readme += `- **Type**: Microservice\n`;
@@ -41,12 +38,9 @@ export const generateReadme = (config, serviceName = null) => {
   } else {
     readme += `- **Type**: Monolith API\n`;
     readme += `- **Port**: 4000 (default)\n\n`;
-  }
-  
-  // Tech Stack
   readme += `## Tech Stack\n\n`;
   readme += `- **Runtime**: Node.js\n`;
-  readme += `- **Language**: TypeScript\n`;
+  readme += `- **Language**: ${languageLabel}\n`;
   readme += `- **Framework**: Express.js\n`;
   if (auth) readme += `- **Database**: MongoDB (Mongoose)\n`;
   
@@ -141,11 +135,13 @@ export const generateReadme = (config, serviceName = null) => {
     readme += `\`\`\`bash\n`;
     readme += `npm run dev\n`;
     readme += `\`\`\`\n\n`;
-    readme += `### Production\n\n`;
-    readme += `\`\`\`bash\n`;
-    readme += `npm run build\n`;
-    readme += `npm start\n`;
-    readme += `\`\`\`\n\n`;
+    if (isTypeScript) {
+      readme += `### Production\n\n`;
+      readme += `\`\`\`bash\n`;
+      readme += `npm run build\n`;
+      readme += `npm start\n`;
+      readme += `\`\`\`\n\n`;
+    }
   }
   
   // API Endpoints
@@ -189,9 +185,6 @@ export const generateReadme = (config, serviceName = null) => {
     readme += "# Gateway health\n";
     readme += "curl http://localhost:4000/health\n\n";
 
-    // Direct access examples for non-gateway services
-    const exampleServices = (config.allServices && config.allServices.length)
-      ? config.allServices
       : ["gateway", "health-service", ...(auth ? ["auth-service"] : [])];
     exampleServices.forEach((service) => {
       if (service === "gateway") return; // gateway already covered
@@ -203,15 +196,14 @@ export const generateReadme = (config, serviceName = null) => {
     if (auth && exampleServices.includes("auth-service")) {
       const authPort = 4001 + exampleServices.filter((s) => s !== "gateway" && exampleServices.indexOf(s) < exampleServices.indexOf("auth-service")).length;
       readme += "# Auth requests (through gateway)\n";
-      readme += `curl -X POST http://localhost:4000/api/v1/auth/register \\\n+  -H "Content-Type: application/json" \\\n+  -d '{"username":"testuser","password":"password123"}'\n\n`;
-      readme += `curl -X POST http://localhost:4000/api/v1/auth/login \\\n+  -H "Content-Type: application/json" \\\n+  -d '{"username":"testuser","password":"password123"}'\n\n`;
-      readme += `# Auth requests (direct access)\n`;
-      readme += `curl -X POST http://localhost:${authPort}/api/v1/auth/register \\\n+  -H "Content-Type: application/json" \\\n+  -d '{"username":"testuser","password":"password123"}'\n\n`;
-      readme += `curl -X POST http://localhost:${authPort}/api/v1/auth/login \\\n+  -H "Content-Type: application/json" \\\n+  -d '{"username":"testuser","password":"password123"}'\n\n`;
+      readme += `curl -X POST http://localhost:4000/api/v1/auth/register \\\n  -H "Content-Type: application/json" \\\n  -d '{"username":"testuser","password":"password123"}'\n\n`;
+      readme += `curl -X POST http://localhost:4000/api/v1/auth/login \\\n  -H "Content-Type: application/json" \\\n  -d '{"username":"testuser","password":"password123"}'\n\n`;
+
+      readme += "# Auth requests (direct access)\n";
+      readme += `curl -X POST http://localhost:${authPort}/api/v1/auth/register \\\n  -H "Content-Type: application/json" \\\n  -d '{"username":"testuser","password":"password123"}'\n\n`;
+      readme += `curl -X POST http://localhost:${authPort}/api/v1/auth/login \\\n  -H "Content-Type: application/json" \\\n  -d '{"username":"testuser","password":"password123"}'\n\n`;
     }
 
-    readme += "```\n\n";
-    
   } else {
     readme += `Base URL: \`http://localhost:4000\`\n\n`;
     readme += `- **GET** \`/\` - Root endpoint (API info)\n`;
@@ -273,12 +265,14 @@ export const generateReadme = (config, serviceName = null) => {
     readme += `│   │       └── health/ # Health check\n`;
     if (auth) readme += `│   ├── models/         # Database models\n`;
     readme += `│   ├── utils/          # Utility functions\n`;
-    readme += `│   ├── app.ts          # Express app setup\n`;
-    readme += `│   ├── routes.ts       # Route definitions\n`;
-    readme += `│   └── server.ts       # Server entry point\n`;
+    readme += `│   ├── app.${monolithFileExt}          # Express app setup\n`;
+    readme += `│   ├── routes.${monolithFileExt}       # Route definitions\n`;
+    readme += `│   └── server.${monolithFileExt}       # Server entry point\n`;
     readme += `├── .husky/             # Git hooks\n`;
     readme += `├── package.json\n`;
-    readme += `└── tsconfig.json\n`;
+    if (isTypeScript) {
+      readme += `└── tsconfig.json\n`;
+    }
   }
   readme += `\`\`\`\n\n`;
   
@@ -297,7 +291,9 @@ export const generateReadme = (config, serviceName = null) => {
     }
   } else {
     readme += `- \`npm run dev\` - Start development server with hot reload\n`;
-    readme += `- \`npm run build\` - Build for production\n`;
+    if (isTypeScript) {
+      readme += `- \`npm run build\` - Build for production\n`;
+    }
     readme += `- \`npm start\` - Start production server\n`;
     readme += `- \`npm run lint\` - Run ESLint\n`;
     readme += `- \`npm run format\` - Run Prettier\n`;
@@ -307,8 +303,23 @@ export const generateReadme = (config, serviceName = null) => {
   // Environment Variables
   readme += `## Environment Variables\n\n`;
   readme += `| Variable | Description | Default |\n`;
-  readme += `|----------|-------------|---------||\n`;
-  readme += `| \`PORT\` | Server port | \`4000\` |\n`;
+  readme += `| --- | --- | --- |\n`;
+  if (isMicroservice) {
+    const envServices = (config.allServices && config.allServices.length)
+      ? config.allServices
+      : ["gateway", "health-service", ...(auth ? ["auth-service"] : [])];
+    envServices.forEach((service, idx) => {
+      const isGateway = service === "gateway";
+      const port = isGateway
+        ? 4000
+        : 4001 + envServices.filter((s) => s !== "gateway" && envServices.indexOf(s) < idx).length;
+      const envVarName = `${service.toUpperCase().replace(/-/g, "_")}_PORT`;
+      const description = `${service.replace(/-/g, " ")} service port`;
+      readme += `| \`${envVarName}\` | ${description} | \`${port}\` |\n`;
+    });
+  } else {
+    readme += `| \`PORT\` | Server port | \`4000\` |\n`;
+  }
   readme += `| \`NODE_ENV\` | Environment | \`development\` |\n`;
   if (features.includes("cors")) {
     readme += `| \`ALLOWED_ORIGIN\` | CORS allowed origin | \`http://localhost:3000\` |\n`;

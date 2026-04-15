@@ -36,6 +36,7 @@ const base = baseRoot;
 
 // Determine which services to create
 const servicesToCreate = [];
+const servicesToSetup = [];
 if (isInMicroserviceProject) {
   const newServiceName = config.serviceName.replace(/\s+/g, "-");
   servicesToCreate.push(newServiceName);
@@ -257,7 +258,6 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
     }
   }
 
-  const servicesToSetup = [];
   for (const serviceName of servicesToCreate) {
     const serviceRoot = path.join(target, "services", serviceName);
 
@@ -339,14 +339,14 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
   // Include services we're about to create so port computation and gateway routing
   // are aware of newly added services when setting up files.
   const allServices = Array.from(
-    new Set([...existingServices, ...servicesToCreate]),
+    new Set([...existingServices, ...servicesToSetup]),
   );
 
   // Step 1: Setup all service files first (without installing dependencies)
   console.log(pc.cyan("\n⚙️  Setting up service files...\n"));
   const serviceConfigs = [];
 
-  for (const serviceName of servicesToCreate) {
+  for (const serviceName of servicesToSetup) {
     const serviceRoot = path.join(target, "services", serviceName);
     const shouldIncludeAuth = isInMicroserviceProject
       ? config.auth
@@ -392,7 +392,9 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
       fs.mkdirSync(rootHuskyDir, { recursive: true });
     const preCommitPath = path.join(rootHuskyDir, "pre-commit");
     const preCommitContent =
-      'set -e\n\necho "Checking format (prettier)..."\nnpm run check-format\n\necho "Running TypeScript type-check..."\nnpx tsc --noEmit\n\necho "Checking lint..."\nnpm run lint -- --max-warnings=0\n';
+      config.language === "typescript"
+        ? 'set -e\n\necho "Checking format (prettier)..."\nnpm run check-format\n\necho "Running TypeScript type-check..."\nnpx tsc --noEmit\n\necho "Checking lint..."\nnpm run lint -- --max-warnings=0\n'
+        : 'set -e\n\necho "Checking format (prettier)..."\nnpm run check-format\n\necho "Checking lint..."\nnpm run lint -- --max-warnings=0\n';
     fs.writeFileSync(preCommitPath, preCommitContent);
   } catch (err) {
     // Non-fatal; continue setup even if husky files couldn't be created/removed
@@ -401,8 +403,8 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
   // Step 2: Generate docker-compose/pm2 config and root files
   if (mode === "docker") {
     generateDockerCompose(target, allServices, config.sanitizedName);
-    copyDockerfile(target, servicesToCreate);
-    copyDockerignore(target, servicesToCreate);
+    copyDockerfile(target, servicesToSetup);
+    copyDockerignore(target, servicesToSetup);
   } else {
     generatePm2Config(target, allServices);
   }
@@ -795,6 +797,17 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
 } else {
   const result = await setupService(config, null, target, true);
   config.installSucceeded = result.installSucceeded;
+
+  // Safety net: ensure eslint.config.js exists in generated monolith projects
+  const templateEslintConfig = path.join(base, "eslint.config.js");
+  const generatedEslintConfig = path.join(target, "eslint.config.js");
+  if (
+    config.projectType === "monolith" &&
+    fs.existsSync(templateEslintConfig) &&
+    !fs.existsSync(generatedEslintConfig)
+  ) {
+    fs.copyFileSync(templateEslintConfig, generatedEslintConfig);
+  }
 }
 
 // Generate README.md for monolith (microservices already done above)
@@ -892,9 +905,13 @@ if (isInMicroserviceProject) {
 }
 
 if (isInMicroserviceProject) {
-  console.log(
-    `\n${pc.green("✅ Service")} ${pc.bold(servicesToCreate[0])} ${pc.green("added successfully!")}`,
-  );
+  if (servicesToSetup.length > 0) {
+    console.log(
+      `\n${pc.green("✅ Service")} ${pc.bold(servicesToSetup[0])} ${pc.green("added successfully!")}`,
+    );
+  } else {
+    console.log(pc.yellow("\n⚠️  No new service was created (skipped by your selection)."));
+  }
   console.log(`\n${pc.cyan("📦 All services:")} ${allServices.join(", ")}`);
   console.log(`\n${pc.blue("💡 Next steps:")}`);
   console.log(`   ${pc.dim("1.")} Start services: ${pc.bold("npm run dev")}`);

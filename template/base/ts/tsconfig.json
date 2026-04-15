@@ -11,9 +11,8 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
 
-    "baseUrl": "src",
     "paths": {
-      "@/*": ["*"]
+      "@/*": ["./src/*"]
     },
     "types": ["node"]
   },

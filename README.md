@@ -367,10 +367,12 @@ limitations under the License.
 ## ✨ Author
 
 **Aladetan Fortune Ifeloju (IfeCodes)**  
-Full‑Stack Developer & TechPreneur  
+Full-Stack Developer & TechPreneur  
 
 - GitHub: [@ALADETAN-IFE](https://github.com/ALADETAN-IFE)  
+- Portfolio: [IFECODES](https://ifecodes.xyz)
 - Twitter/X: [@IfeCodes](https://twitter.com/IfeCodes_)
+- LinkedIn: [Aladetan Fortune Ife](https://www.linkedin.com/in/fortune-ife-aladetan-458ab136a?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app)
 
 ---
 

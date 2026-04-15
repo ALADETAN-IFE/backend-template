@@ -36,26 +36,31 @@ export const setupService = async (
   // Detect file extension (ts or js)
   const ext = getFileExtension(serviceRoot);
 
-  // Remove workspace-level config files from service (they should live at root)
-  try {
-    const serviceConfigFiles = [
-      ".prettierrc",
-      ".prettierignore",
-      ".eslintrc.json",
-      "eslint.config.js",
-      "husky",
-    ];
-    for (const f of serviceConfigFiles) {
-      const p = path.join(serviceRoot, f);
-      if (fs.existsSync(p)) {
-        // Remove file or directory
-        const stat = fs.statSync(p);
-        if (stat.isDirectory()) fs.rmSync(p, { recursive: true, force: true });
-        else fs.rmSync(p, { force: true });
+  // Remove workspace-level config files from service only in microservice mode (they should live at root)
+  // (monolith projects keep these files at project root)
+  if (res.projectType === "microservice" || res.isInMicroserviceProject) {
+    try {
+      const serviceConfigFiles = [
+        ".prettierrc",
+        ".prettierignore",
+        ".eslintrc.json",
+        "eslint.config.js",
+        ".husky",
+        "husky",
+      ];
+      for (const f of serviceConfigFiles) {
+        const p = path.join(serviceRoot, f);
+        if (fs.existsSync(p)) {
+          // Remove file or directory
+          const stat = fs.statSync(p);
+          if (stat.isDirectory())
+            fs.rmSync(p, { recursive: true, force: true });
+          else fs.rmSync(p, { force: true });
+        }
       }
+    } catch (err) {
+      // Non-fatal
     }
-  } catch (err) {
-    // Non-fatal
   }
 
   // Ensure service-level gitignore is renamed immediately after template copy
