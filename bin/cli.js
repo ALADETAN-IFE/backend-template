@@ -59,14 +59,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check code format
+        run: npm run check-format
+
       - name: Run linter
-        run: npm run lint --if-present
+        run: npm run lint 
 
       - name: Run build
-        run: npm run build --if-present
-
-      - name: Run tests
-        run: npm run test --if-present
+        run: npm run build
 `;
 
   fs.writeFileSync(path.join(workflowsDir, "ci-cd.yml"), workflowContent);
