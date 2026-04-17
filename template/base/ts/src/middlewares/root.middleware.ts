@@ -7,7 +7,9 @@ export const rootHandler = (_req: Request, res: Response) => {
     version: "1.0.0",
     status: "running",
     endpoints: {
+      root: "/",
       health: "/api/v1/health",
+      docs: "/api-docs",
       /*__AUTH_ENDPOINT__*/
     },
   });

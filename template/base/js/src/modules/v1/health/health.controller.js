@@ -1,10 +1,10 @@
-const { logger } = require("../../../utils");
+const { logger } = require('../../../utils');
 
 const healthCheck = async (_, res) => {
-  logger.info("Health", "healthy");
+  logger.info('Health', 'healthy');
 
   return res.status(200).json({
-    status: "healthy",
+    status: 'healthy',
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     services: {
@@ -17,5 +17,5 @@ const healthCheck = async (_, res) => {
 };
 
 module.exports = {
-  healthCheck
+  healthCheck,
 };

@@ -55,6 +55,9 @@ export const generateReadme = (config, serviceName = null) => {
   readme += `- **Framework**: Express.js\n`;
   if (auth) readme += `- **Database**: MongoDB (Mongoose)\n`;
   readme += `- **Operations**: Environment validation at startup and request tracing headers\n`;
+  if (config.validation) {
+    readme += `- **Validation**: Zod schema-based request validation middleware\n`;
+  }
 
   if (features.length > 0 || auth) {
     readme += `- **Features**:\n`;
@@ -66,6 +69,7 @@ export const generateReadme = (config, serviceName = null) => {
     if (auth) readme += `  - Authentication (JWT)\n`;
   }
   readme += `- **Observability**: Request IDs and HTTP access logs\n`;
+  readme += `- **API Docs**: OpenAPI Swagger UI (/api-docs)\n`;
   if (config.cicd) readme += `- **CI/CD**: GitHub Actions starter workflow\n`;
   readme += `\n`;
 
@@ -170,6 +174,7 @@ export const generateReadme = (config, serviceName = null) => {
     readme += `### Gateway Endpoints\n`;
     readme += `- **GET** \`/\` - API information and available endpoints\n`;
     readme += `- **GET** \`/health\` - Gateway health check\n\n`;
+    readme += `- **GET** \`/api-docs\` - Interactive Swagger UI\n\n`;
     readme += `### Health Service (Proxied through Gateway)\n`;
     readme += `- **GET** \`/api/v1/health\` - Service health check with system metrics\n`;
     readme += `  - Returns: status, uptime, timestamp, memory usage\n\n`;
@@ -219,6 +224,7 @@ export const generateReadme = (config, serviceName = null) => {
     readme += `Base URL: \`http://localhost:4000\`\n\n`;
     readme += `- **GET** \`/\` - Root endpoint (API info)\n`;
     readme += `- **GET** \`/api/v1/health\` - Health check\n\n`;
+    readme += `- **GET** \`/api-docs\` - Interactive Swagger UI\n\n`;
     if (auth) {
       readme += `### Authentication\n`;
       readme += `- **POST** \`/api/v1/auth/register\` - Register a new user\n`;
@@ -277,7 +283,8 @@ export const generateReadme = (config, serviceName = null) => {
     readme += `│   ├── routes.${monolithFileExt}       # Route definitions\n`;
     readme += `│   └── server.${monolithFileExt}       # Server entry point\n`;
     readme += `├── .husky/             # Git hooks\n`;
-    if (config.cicd) readme += `├── CONTRIBUTING.md     # Contribution guidelines\n`;
+    if (config.cicd)
+      readme += `├── CONTRIBUTING.md     # Contribution guidelines\n`;
     readme += `├── package.json\n`;
     if (isTypeScript) readme += `└── tsconfig.json\n`;
   }

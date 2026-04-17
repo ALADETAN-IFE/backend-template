@@ -1,8 +1,9 @@
-const methodNotAllowedHandler = require("./method-not-allowed.middleware");
-const { notFound } = require("./not-found.middleware");
-const { rootHandler } = require("./root.middleware");
-const { errorHandler } = require("./error-handler.middleware");
-const { observabilityMiddleware } = require("./observability.middleware");
+const methodNotAllowedHandler = require('./method-not-allowed.middleware');
+const { notFound } = require('./not-found.middleware');
+const { rootHandler } = require('./root.middleware');
+const { errorHandler } = require('./error-handler.middleware');
+const { observabilityMiddleware } = require('./observability.middleware');
+const { validateRequest } = require('./validation.middleware');
 
 module.exports = {
   methodNotAllowedHandler,
@@ -10,4 +11,5 @@ module.exports = {
   rootHandler,
   errorHandler,
   observabilityMiddleware,
+  validateRequest,
 };

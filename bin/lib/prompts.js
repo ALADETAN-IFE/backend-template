@@ -153,6 +153,14 @@ export const getProjectConfig = async () => {
         ],
         initial: 0,
       },
+      {
+        type: isInMicroserviceProject || isCI ? null : "toggle",
+        name: "validation",
+        message: pc.cyan("Include request validation with Zod?"),
+        initial: false,
+        active: pc.green("yes"),
+        inactive: pc.red("no"),
+      },
     ],
     {
       onCancel: () => {
@@ -191,6 +199,7 @@ export const getProjectConfig = async () => {
     res.mode = res.mode || "docker"; // Default to docker in CI
     res.language = res.language || "typescript"; // Default to TypeScript in CI
     res.projectScope = res.projectScope || "team";
+    res.validation = res.validation ?? false;
   }
 
   // Merge CLI args with prompted responses

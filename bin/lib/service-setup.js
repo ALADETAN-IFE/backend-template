@@ -129,6 +129,11 @@ export const setupService = async (
       fs.rmSync(middlewaresPath, { recursive: true });
   } else {
     // Regular service setup (existing code)
+    // Add Zod and Swagger if validation is enabled
+    if (res.validation) {
+      deps.push("zod");
+    }
+
     // Add features (only for monolith or health-service)
     if (res.projectType === "monolith" || serviceName === "health-service") {
       for (const f of res.features) {
@@ -226,6 +231,219 @@ export const setupService = async (
           : baseAuth.imports,
       );
       v1Routes.push(baseAuth.middleware);
+    }
+
+    // Update health route to remove validation if not enabled
+    if (!res.validation) {
+      const healthRoutePath = path.join(
+        serviceRoot,
+        `src/modules/v1/health/health.route.${ext}`,
+      );
+      if (fs.existsSync(healthRoutePath)) {
+        let healthContent = fs.readFileSync(healthRoutePath, "utf8");
+
+        // Remove validation imports and schema if not enabled
+        if (ext === "ts") {
+          healthContent = healthContent
+            .replace(
+              "import { methodNotAllowedHandler, validateRequest } from '@/middlewares';\n",
+              "import { methodNotAllowedHandler } from '@/middlewares';\n",
+            )
+            .replace("import { z } from 'zod';\n", "")
+            .replace(
+              "const healthQuerySchema = z\n  .object({\n    verbose: z.coerce.boolean().optional(),\n  })\n  .strict();\n\n",
+              "",
+            )
+            .replace(", validateRequest({ query: healthQuerySchema })", "");
+        } else {
+          healthContent = healthContent
+            .replace("const { z } = require(\'zod\');\n", "")
+            .replace(
+              /const {[\s\S]*?validateRequest[\s\S]*?} = require\('\.\.\/\.\.\/\.\.\/middlewares'\);/,
+              "const { methodNotAllowedHandler } = require(\'../../../middlewares\');",
+            )
+            .replace(
+              "const healthQuerySchema = z\n  .object({\n    verbose: z.coerce.boolean().optional(),\n  })\n  .strict();\n\n",
+              "",
+            )
+            .replace(", validateRequest({ query: healthQuerySchema })", "");
+        }
+
+        fs.writeFileSync(healthRoutePath, healthContent);
+      }
+    }
+
+    // Replace health controller with auth version if auth is enabled
+    if (shouldIncludeAuth && res.auth) {
+      const baseDir = path.dirname(fileURLToPath(import.meta.url));
+      const healthControllerSourcePath = path.join(
+        baseDir,
+        `../../template/base/${ext}/src/modules/v1/health/health.controller.auth.${ext}`,
+      );
+      const healthControllerTargetPath = path.join(
+        serviceRoot,
+        `src/modules/v1/health/health.controller.${ext}`,
+      );
+
+      if (fs.existsSync(healthControllerSourcePath)) {
+        const healthControllerContent = fs.readFileSync(
+          healthControllerSourcePath,
+          "utf8",
+        );
+        fs.writeFileSync(healthControllerTargetPath, healthControllerContent);
+      }
+    } else {
+      const healthControllerSourcePath = path.join(
+        baseDir,
+        `../../template/base/${ext}/src/modules/v1/health/health.controller.${ext}`,
+      );
+      const healthControllerTargetPath = path.join(
+        serviceRoot,
+        `src/modules/v1/health/health.controller.${ext}`,
+      );
+
+      if (fs.existsSync(healthControllerSourcePath)) {
+        const healthControllerContent = fs.readFileSync(
+          healthControllerSourcePath,
+          "utf8",
+        );
+        fs.writeFileSync(healthControllerTargetPath, healthControllerContent);
+      }
+    }
+
+    // Update auth routes to remove validation if not enabled
+    if (!res.validation && shouldIncludeAuth && res.auth) {
+      const authRoutePath = path.join(
+        serviceRoot,
+        `src/modules/v1/auth/auth.routes.${ext}`,
+      );
+      if (fs.existsSync(authRoutePath)) {
+        let authContent = fs.readFileSync(authRoutePath, "utf8");
+
+        // Remove validation imports and usage if not enabled
+        if (ext === "ts") {
+          authContent = authContent
+            .replace('import { validateRequest } from "@/middlewares";\n', "")
+            .replace('import { z } from "zod";\n', "")
+            .replace(/const \w+Schema = z[\s\S]*?\.strict\(\);?\n\n/, "")
+            .replace(/, validateRequest\({ body: \w+Schema \}\)/g, "");
+        } else {
+          authContent = authContent
+            .replace('const { z } = require("zod");\n', "")
+            .replace(
+              /const {[\s\S]*?validateRequest[\s\S]*?} = require\("\.\.\/\.\.\/\.\.\/middlewares"\);/,
+              'const { methodNotAllowedHandler } = require("../../../middlewares");',
+            )
+            .replace(/const \w+Schema = z[\s\S]*?\.strict\(\);?\n\n/, "")
+            .replace(/, validateRequest\({ body: \w+Schema \}\)/g, "");
+        }
+
+        fs.writeFileSync(authRoutePath, authContent);
+      }
+    }
+
+    // Update OpenAPI spec to include MongoDB status when auth is enabled
+    if (shouldIncludeAuth && res.auth) {
+      const openApiPath = path.join(serviceRoot, `src/docs/openapi.${ext}`);
+      if (fs.existsSync(openApiPath)) {
+        let openApiContent = fs.readFileSync(openApiPath, "utf8");
+
+        // Update health endpoint schema to include MongoDB status
+        const mongodbProperty = `mongodb: { type: "string", enum: ["connected", "disconnected"] },`;
+
+        if (ext === "ts") {
+          openApiContent = openApiContent.replace(
+            `services: {
+                      type: "object",
+                      properties: {
+                        memory: {`,
+            `services: {
+                      type: "object",
+                      properties: {
+                        ${mongodbProperty}
+                        memory: {`,
+          );
+
+          // Add failed array property to properties
+          openApiContent = openApiContent.replace(
+            `                      },
+                    },`,
+            `                      },
+                    },
+                    failed: {
+                      type: "array",
+                      items: { type: "string" },
+                      description: "List of failed services",
+                    },`,
+          );
+
+          // Add 503 response
+          openApiContent = openApiContent.replace(
+            `          "400": {
+            description: "Validation error",
+          },
+        },
+      },
+    },`,
+            `          "400": {
+            description: "Validation error",
+          },
+          "503": {
+            description: "Service unhealthy (when MongoDB is down)",
+          },
+        },
+      },
+    },`,
+          );
+        } else {
+          // JS version
+          openApiContent = openApiContent.replace(
+            `services: {
+                      type: "object",
+                      properties: {
+                        memory: {`,
+            `services: {
+                      type: "object",
+                      properties: {
+                        ${mongodbProperty}
+                        memory: {`,
+          );
+
+          // Add failed array property to properties
+          openApiContent = openApiContent.replace(
+            `                      },
+                    },`,
+            `                      },
+                    },
+                    failed: {
+                      type: "array",
+                      items: { type: "string" },
+                      description: "List of failed services",
+                    },`,
+          );
+
+          // Add 503 response
+          openApiContent = openApiContent.replace(
+            `          "400": {
+            description: "Validation error",
+          },
+        },
+      },
+    },`,
+            `          "400": {
+            description: "Validation error",
+          },
+          "503": {
+            description: "Service unhealthy (when MongoDB is down)",
+          },
+        },
+      },
+    },`,
+          );
+        }
+
+        fs.writeFileSync(openApiPath, openApiContent);
+      }
     }
 
     // Update app file
