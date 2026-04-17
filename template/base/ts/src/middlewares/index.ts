@@ -2,3 +2,4 @@ export { default as methodNotAllowedHandler } from "./method-not-allowed.middlew
 export { notFound } from "./not-found.middleware";
 export { rootHandler } from "./root.middleware";
 export { errorHandler } from "./error-handler.middleware";
+export { observabilityMiddleware } from "./observability.middleware";

@@ -14,7 +14,32 @@ A powerful CLI tool to generate production-ready Node.js backend applications wi
 - 🛡️ **Security First** - CORS, Helmet, Rate Limiting
 - 📝 **Professional Logging** - Morgan + Winston
 - 🎨 **Colored CLI** - Beautiful Vite-like terminal output
+- ✅ **Environment Validation** - Fails fast on missing config
+- 📈 **Observability** - Request IDs and HTTP access logs
+- � **CI/CD Workflows** - GitHub Actions starter workflow for team projects
 - 📋 **Project Metadata** - Description, author, and keywords support
+- 📖 **Contributing Guide** - Auto-generated CONTRIBUTING.md for team projects
+- 🔀 **PR Templates** - Pre-formatted pull request templates for team projects
+
+---
+
+## 🤝 Team & Individual Projects
+
+The template distinguishes between **team projects** and **individual projects** during setup:
+
+### Team Projects
+
+Team projects automatically receive:
+
+- ✅ **GitHub Actions Workflow** (`.github/workflows/ci-cd.yml`) - CI/CD automation for building, linting, and testing
+- ✅ **Pull Request Template** (`.github/pull_request_template.md`) - Standardized PR format for contributions
+- ✅ **Contributing Guide** (`CONTRIBUTING.md`) - Guidelines for team collaboration, code style, commit conventions, and development setup
+
+### Individual Projects
+
+Individual projects skip these collaboration files, keeping the scaffold lean and focused on the application itself.
+
+You can specify your project type during CLI setup, and these files will be generated accordingly.
 
 ---
 
@@ -65,19 +90,24 @@ When you run the CLI, you'll be prompted to choose:
 - **Monolith API** - Traditional single-server architecture
 - **Microservice** - Distributed services with API Gateway
 
-### 4. **Deployment Mode** (Microservices only)
+### 4. **Project Scope** (Team or Individual)
+
+- **Team Project** - Generates CI/CD workflows, PR templates, and contributing guidelines
+- **Individual Project** - Focuses on the application without collaboration overhead
+
+### 5. **Deployment Mode** (Microservices only)
 
 - **Docker** - Container-based deployment with docker-compose
 - **PM2** - Process manager for Node.js applications
 
-### 5. **Optional Features**
+### 6. **Optional Features**
 
 - ✅ **CORS** - Cross-Origin Resource Sharing
 - ✅ **Helmet** - Security headers middleware
 - ✅ **Rate Limiting** - API request throttling
 - ✅ **Morgan** - HTTP request logger
 
-### 6. **Authentication**
+### 7. **Authentication**
 
 - ✅ **JWT Authentication** with MongoDB
 - Choose between **bcrypt** (recommended for Windows) or **argon2** for password hashing
@@ -102,8 +132,13 @@ my-backend/
 │   ├── app.ts          # Express app setup
 │   ├── routes.ts       # Route definitions
 │   └── server.ts       # Server entry point
+├── .github/            # GitHub configuration (team projects only)
+│   ├── workflows/      # CI/CD workflows
+│   │   └── ci-cd.yml   # GitHub Actions workflow
+│   └── pull_request_template.md # PR template
 ├── .husky/             # Git hooks
 ├── .env                # Environment variables
+├── CONTRIBUTING.md     # Contribution guidelines (team projects only)
 ├── package.json
 └── tsconfig.json
 ```
@@ -119,10 +154,15 @@ my-project/
 │   ├── gateway/        # API Gateway (port 4000)
 │   ├── health-service/ # Health checks (port 4001)
 │   └── auth-service/   # Authentication (port 4002, if enabled)
+├── .github/            # GitHub configuration (team projects only)
+│   ├── workflows/      # CI/CD workflows
+│   │   └── ci-cd.yml   # GitHub Actions workflow
+│   └── pull_request_template.md # PR template
 ├── docker-compose.yml  # Docker setup (if selected)
 ├── pm2.config.js       # PM2 setup (if selected)
 ├── .env                # Root environment variables
 ├── .gitignore          # Git ignore (includes .env and node_modules)
+├── CONTRIBUTING.md     # Contribution guidelines (team projects only)
 ├── tsconfig.json       # Root TypeScript config with project references
 ├── .husky/             # Git hooks
 └── package.json        # Root package.json

@@ -1,12 +1,14 @@
 const express = require("express");
 const router = require("./routes");
-const { errorHandler } = require("./middlewares");
+const { errorHandler, observabilityMiddleware } = require("./middlewares");
 /*__IMPORTS__*/
 
 const app = express();
 
 // Parse JSON request bodies
 app.use(express.json());
+
+app.use(observabilityMiddleware);
 
 /*__MIDDLEWARE__*/
 

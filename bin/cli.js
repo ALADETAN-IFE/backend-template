@@ -16,6 +16,269 @@ import {
   copyDockerignore,
 } from "./lib/microservice-config.js";
 
+function writeStarterWorkflow(target, config) {
+  if (config.isInMicroserviceProject || !config.cicd) {
+    return;
+  }
+
+  const workflowsDir = path.join(target, ".github", "workflows");
+  fs.mkdirSync(workflowsDir, { recursive: true });
+
+  const workflowName = config.sanitizedName
+    ? `${config.sanitizedName} CI/CD`
+    : "Build CI/CD";
+
+  const workflowContent = `name: ${workflowName}
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  # ------------------------
+  # 1️⃣ BUILD & CHECK JOB
+  # ------------------------
+  build:
+    name: Build & Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint --if-present
+
+      - name: Run build
+        run: npm run build --if-present
+
+      - name: Run tests
+        run: npm run test --if-present
+`;
+
+  fs.writeFileSync(path.join(workflowsDir, "ci-cd.yml"), workflowContent);
+}
+
+function writePullRequestTemplate(target, config) {
+  if (config.isInMicroserviceProject || !config.cicd) {
+    return;
+  }
+
+  const githubDir = path.join(target, ".github");
+  fs.mkdirSync(githubDir, { recursive: true });
+
+  const prTemplateContent = `# Description
+
+<!--- Describe your changes in detail -->
+
+This PR ...
+
+# Changes Proposed
+
+## What were you told to do?
+
+## What did you do?
+
+## Types of changes
+
+<!--- What types of changes does your code introduce? Put an x in all the boxes that apply: -->
+
+- [ ] Bug fix (non-breaking change which fixes an issue)
+- [ ] New feature (non-breaking change which adds functionality)
+- [ ] Breaking change (fix or feature that would cause existing functionality to change)
+- [ ] Chore (changes that do not relate to a fix or feature and don't modify src or test files)
+
+# Check List
+
+<!--- Go over all the following points, and put an x in all the boxes that apply. -->
+<!--- If you're unsure about any of these, don't hesitate to ask. We're here to help! -->
+
+- [x] My code follows the code style of this project.
+- [x] This PR does not contain plagiarized content.
+- [x] The title and description of the PR are clear and explain the approach.
+- [x] I am making a pull request against the dev branch (left side).
+- [x] My commit message style matches our requested structure.
+- [x] My code additions will not fail code linting checks or unit tests.
+- [x] I am only making changes to files I was requested to.
+
+---
+
+# Images
+
+<!-- Add Screenshots of: -->
+
+- Linting check (run npm lint)
+`;
+
+  fs.writeFileSync(path.join(githubDir, "pull_request_template.md"), prTemplateContent);
+}
+
+function writeContributingGuide(target, config) {
+  if (config.isInMicroserviceProject || !config.cicd) {
+    return;
+  }
+
+  const contributingContent = `# Contributing
+
+Thank you for your interest in contributing to **${config.sanitizedName}**! We appreciate your help in making this project better.
+
+## Getting Started
+
+1. **Fork the repository** — Click the fork button on GitHub to create your own copy.
+2. **Clone your fork** — Clone your forked repository to your local machine:
+   \`\`\`bash
+   git clone https://github.com/YOUR_USERNAME/${config.sanitizedName}.git
+   cd ${config.sanitizedName}
+   \`\`\`
+3. **Add upstream remote** — Keep a reference to the original repository:
+   \`\`\`bash
+   git remote add upstream https://github.com/ORIGINAL_OWNER/${config.sanitizedName}.git
+   \`\`\`
+
+## Development Setup
+
+1. **Install dependencies**:
+   \`\`\`bash
+   npm install
+   \`\`\`
+
+2. **Create a feature branch**:
+   \`\`\`bash
+   git checkout -b feature/your-feature-name
+   \`\`\`
+
+3. **Make your changes** and commit with clear, descriptive messages:
+   \`\`\`bash
+   git add .
+   git commit -m "feat: add your feature description"
+   \`\`\`
+
+## Code Quality
+
+Before submitting a pull request, ensure your code meets our standards:
+
+### Linting
+
+Run the linter to check for code style issues:
+\`\`\`bash
+npm run lint
+\`\`\`
+
+Fix any issues automatically (when possible):
+\`\`\`bash
+npm run lint -- --fix
+\`\`\`
+
+### Formatting
+
+We use Prettier for code formatting. Format your code before committing:
+\`\`\`bash
+npm run format
+\`\`\`
+
+### Building
+
+Ensure your changes build successfully:
+\`\`\`bash
+npm run build
+\`\`\`
+
+### Testing
+
+Run tests to verify your changes:
+\`\`\`bash
+npm run test
+\`\`\`
+
+## Commit Message Guidelines
+
+Follow these conventions for commit messages:
+
+- \`feat:\` for new features
+- \`fix:\` for bug fixes
+- \`docs:\` for documentation changes
+- \`style:\` for code style changes (formatting, missing semicolons, etc.)
+- \`refactor:\` for code refactoring
+- \`test:\` for testing changes
+- \`chore:\` for dependency updates, build changes, etc.
+
+**Example:**
+\`\`\`
+feat: add user authentication endpoint
+fix: resolve null pointer exception in service
+docs: update API documentation
+\`\`\`
+
+## Pull Request Process
+
+1. **Sync your branch** with the main repository:
+   \`\`\`bash
+   git fetch upstream
+   git rebase upstream/main
+   \`\`\`
+
+2. **Push your changes**:
+   \`\`\`bash
+   git push origin feature/your-feature-name
+   \`\`\`
+
+3. **Create a Pull Request** on GitHub with:
+   - A clear, concise title describing your changes
+   - A detailed description using our PR template
+   - Reference to any related issues (e.g., "Closes #123")
+
+4. **Address feedback** — Respond to code review comments and make requested changes
+
+5. **Merge** — Once approved and all checks pass, your PR will be merged
+
+## Code Style
+
+- Use **consistent indentation** (2 spaces)
+- Follow **ESLint** and **Prettier** configurations
+- Write **descriptive variable and function names**
+- Add **comments** for complex logic
+- Keep **functions small** and focused
+
+## Reporting Issues
+
+Found a bug? Please open an issue on GitHub with:
+- A clear, descriptive title
+- Steps to reproduce the issue
+- Expected vs. actual behavior
+- Your environment (OS, Node version, etc.)
+- Any relevant error messages or logs
+
+## Questions or Need Help?
+
+- Check the [README.md](../README.md) for project overview
+- Review existing issues and documentation
+- Open a discussion if you have questions
+
+## Code of Conduct
+
+Please be respectful and welcoming to all contributors. We are committed to providing a harassment-free environment.
+
+---
+
+Thank you for contributing! Your efforts help make this project better for everyone. 🙏
+`;
+
+  fs.writeFileSync(path.join(target, "CONTRIBUTING.md"), contributingContent);
+}
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Get project configuration from user
@@ -526,6 +789,9 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
     console.log(`\n${pc.cyan("📝 Generating README.md...")}\n`);
     const readmeContent = generateReadme(config);
     fs.writeFileSync(path.join(target, "README.md"), readmeContent);
+    writeStarterWorkflow(target, config);
+    writePullRequestTemplate(target, config);
+    writeContributingGuide(target, config);
 
     // Rename gitignore to .gitignore (npm doesn't publish .gitignore files)
     for (const service of allServices) {
@@ -815,6 +1081,9 @@ if (!isInMicroserviceProject && config.projectType === "monolith") {
   console.log(`\n${pc.cyan("📝 Generating README.md...")}\n`);
   const readmeContent = generateReadme(config);
   fs.writeFileSync(path.join(target, "README.md"), readmeContent);
+  writeStarterWorkflow(target, config);
+  writePullRequestTemplate(target, config);
+  writeContributingGuide(target, config);
 
   // Rename gitignore to .gitignore (npm doesn't publish .gitignore files)
   const gitignorePath = path.join(target, "gitignore");

@@ -54,6 +54,7 @@ export const generateReadme = (config, serviceName = null) => {
   readme += `- **Language**: ${languageLabel}\n`;
   readme += `- **Framework**: Express.js\n`;
   if (auth) readme += `- **Database**: MongoDB (Mongoose)\n`;
+  readme += `- **Operations**: Environment validation at startup and request tracing headers\n`;
 
   if (features.length > 0 || auth) {
     readme += `- **Features**:\n`;
@@ -64,6 +65,8 @@ export const generateReadme = (config, serviceName = null) => {
     if (features.includes("morgan")) readme += `  - Morgan (HTTP logging)\n`;
     if (auth) readme += `  - Authentication (JWT)\n`;
   }
+  readme += `- **Observability**: Request IDs and HTTP access logs\n`;
+  if (config.cicd) readme += `- **CI/CD**: GitHub Actions starter workflow\n`;
   readme += `\n`;
 
   readme += `## Getting Started\n\n`;
@@ -254,6 +257,13 @@ export const generateReadme = (config, serviceName = null) => {
     readme += `└── package.json        # Root package.json\n`;
   } else {
     readme += `${sanitizedName}/\n`;
+    if (config.cicd) {
+      readme += `├── .github/\n`;
+      readme += `│   ├── workflows/\n`;
+      readme += `│   │   └── ci-cd.yml        # GitHub Actions CI/CD workflow\n`;
+      readme += `│   └── pull_request_template.md  # PR template\n`;
+    }
+    readme += `├── .husky/             # Git hooks\n`;
     readme += `├── src/\n`;
     readme += `│   ├── config/         # Configuration files\n`;
     readme += `│   ├── middlewares/    # Custom middlewares\n`;
@@ -267,6 +277,7 @@ export const generateReadme = (config, serviceName = null) => {
     readme += `│   ├── routes.${monolithFileExt}       # Route definitions\n`;
     readme += `│   └── server.${monolithFileExt}       # Server entry point\n`;
     readme += `├── .husky/             # Git hooks\n`;
+    if (config.cicd) readme += `├── CONTRIBUTING.md     # Contribution guidelines\n`;
     readme += `├── package.json\n`;
     if (isTypeScript) readme += `└── tsconfig.json\n`;
   }
@@ -316,6 +327,15 @@ export const generateReadme = (config, serviceName = null) => {
     readme += `| \`JWT_SECRET\` | JWT secret key | - |\n`;
   }
   readme += `\n`;
+
+  if (config.cicd && !isMicroservice) {
+    readme += `## Generated Files\n\n`;
+    readme += `The following files have been automatically generated for team projects:\n\n`;
+    readme += `- \`.github/workflows/ci-cd.yml\` - GitHub Actions CI/CD workflow\n`;
+    readme += `- \`.github/pull_request_template.md\` - Pull request template\n`;
+    readme += `- \`CONTRIBUTING.md\` - Contribution guidelines\n\n`;
+    readme += `These files are ready to use and can be customized for your team's needs.\n\n`;
+  }
 
   readme += `## About this Scaffold\n\n`;
   readme += `This project was generated using the @ifecodes/backend-template scaffold. `;

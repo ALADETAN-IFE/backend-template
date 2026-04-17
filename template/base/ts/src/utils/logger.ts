@@ -20,47 +20,37 @@ function getEnvironment() {
     : ENV.NODE_ENV;
 }
 
+function shouldLog(level: "log" | "info" | "warn" | "error") {
+  if (level === "log") {
+    return getEnvironment() === "development";
+  }
+
+  return true;
+}
+
 console.log(
   format("logger", colors.blue),
   `Logger initialized for ${getEnvironment()} environment.`,
 );
 
-const requiredKeys = ENV && Object.keys(ENV).length ? Object.keys(ENV) : [];
-
-const missing = requiredKeys.filter(
-  (k) => ENV == null || (ENV as Record<string, string | undefined>)[k] === undefined || (ENV as Record<string, string | undefined>)[k] === "",
-);
-
-if (missing.length === requiredKeys.length) {
-  console.warn(
-    format("logger", colors.yellow),
-    "ENV values missing — make sure to set up your environment variables correctly.",
-  );
-} else if (missing.length > 0) {
-  console.warn(
-    format("logger", colors.yellow),
-    `Missing ENV keys: ${missing.join(", ")}`,
-  );
-}
-
 const logger = {
   log(tag: string, ...args: unknown[]) {
-    if (getEnvironment() !== "development") return;
+    if (!shouldLog("log")) return;
     console.log(format(tag, colors.blue), ...args);
   },
 
   info(tag: string, ...args: unknown[]) {
-    if (getEnvironment() !== "development") return;
+    if (!shouldLog("info")) return;
     console.info(format(tag, colors.cyan), ...args);
   },
 
   warn(tag: string, ...args: unknown[]) {
-    if (getEnvironment() !== "development") return;
+    if (!shouldLog("warn")) return;
     console.warn(format(tag, colors.yellow), ...args);
   },
 
   error(tag: string, ...args: unknown[]) {
-    if (getEnvironment() !== "development") return;
+    if (!shouldLog("error")) return;
     console.error(format(tag, colors.red), ...args);
   },
 };

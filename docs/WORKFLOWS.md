@@ -11,6 +11,7 @@ How to run the generator
   - (If Microservice) Mode: Docker or PM2 (nodocker)
   - Features: choose any of CORS, Rate Limiter, Helmet, Morgan
   - Include authentication? (yes/no)
+  - Is this a team or individual project?
   - If authentication: choose password hasher (bcrypt or argon2)
 
 What each choice produces
@@ -18,6 +19,7 @@ What each choice produces
   - Single-application scaffold containing `src/`, a `package.json`, and environment examples.
   - If authentication is enabled, the scaffold includes auth routes, models, JWT helpers, and database connection wiring. Otherwise DB wiring is removed.
   - README and `.env.example` are generated to match the chosen options and language.
+  - If the project is marked as team-based, a starter GitHub Actions CI/CD workflow is included under `.github/workflows/`.
 
 - Microservice workspace
   - Creates a monorepo-like structure with a `shared/` folder (shared config & utils) and `services/` for individual services (gateway, health, and optionally auth).
@@ -45,6 +47,8 @@ Dynamic README
   - How to install and run (language-appropriate commands)
   - Docker or PM2 run instructions depending on mode
   - Environment variables required (including JWT and DB when auth is enabled)
+  - Environment validation notes and request tracing/HTTP logging defaults
+  - CI/CD starter workflow for team projects; skipped for individual projects
   - Notes about chosen features and any platform-specific recommendations (e.g., hasher choice on Windows)
 
 Quick reference — produced files you will see

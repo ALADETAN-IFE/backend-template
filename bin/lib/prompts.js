@@ -42,110 +42,125 @@ export const getProjectConfig = async () => {
 
   const res = await prompts(
     [
-    {
-      type: isInMicroserviceProject || hasCliArgs || isCI ? null : "text",
-      name: "name",
-      message: pc.cyan("Project name"),
-      initial: "my-backend",
-    },
-    {
-      type: isInMicroserviceProject || isCI ? null : "select",
-      name: "language",
-      message: pc.cyan("Select language"),
-      choices: [
-        { title: pc.green("TypeScript"), value: "typescript" },
-        { title: pc.yellow("JavaScript"), value: "javascript" },
-      ],
-      initial: 0,
-    },
-    {
-      type: isInMicroserviceProject || isCI ? null : "text",
-      name: "description",
-      message: pc.cyan("Project description") + pc.dim(" (optional)"),
-      initial: "",
-    },
-    {
-      type: isInMicroserviceProject || isCI ? null : "text",
-      name: "author",
-      message: pc.cyan("Author") + pc.dim(" (optional)"),
-      initial: "",
-    },
-    {
-      type: isInMicroserviceProject || isCI ? null : "text",
-      name: "keywords",
-      message: pc.cyan("Keywords") + pc.dim(" (comma-separated, optional)"),
-      initial: "",
-    },
-    {
-      type: isInMicroserviceProject || (hasCliArgs && cliProjectType) || isCI ? null : "select",
-      name: "projectType",
-      message: pc.cyan("Project type"),
-      choices: [
-        { title: pc.blue("Monolith API"), value: "monolith" },
-        { title: pc.magenta("Microservice"), value: "microservice" },
-      ],
-    },
-    {
-      type: (prev, values) => {
-        // Skip if in existing microservice project or CI mode
-        if (isInMicroserviceProject || isCI) return null;
-        
-        // Get projectType from previous answers or CLI args
-        const projectType = prev || cliProjectType || values.projectType;
-        
-        // Show prompt only if projectType is microservice
-        return projectType === "microservice" ? "select" : null;
+      {
+        type: isInMicroserviceProject || hasCliArgs || isCI ? null : "text",
+        name: "name",
+        message: pc.cyan("Project name"),
+        initial: "my-backend",
       },
-      name: "mode",
-      message: pc.cyan("Microservice setup"),
-      choices: [
-        { title: pc.blue("With Docker 🐳"), value: "docker" },
-        { title: pc.yellow("Without Docker (PM2)"), value: "nodocker" },
-      ],
-    },
+      {
+        type: isInMicroserviceProject || isCI ? null : "select",
+        name: "language",
+        message: pc.cyan("Select language"),
+        choices: [
+          { title: pc.green("TypeScript"), value: "typescript" },
+          { title: pc.yellow("JavaScript"), value: "javascript" },
+        ],
+        initial: 0,
+      },
+      {
+        type: isInMicroserviceProject || isCI ? null : "text",
+        name: "description",
+        message: pc.cyan("Project description") + pc.dim(" (optional)"),
+        initial: "",
+      },
+      {
+        type: isInMicroserviceProject || isCI ? null : "text",
+        name: "author",
+        message: pc.cyan("Author") + pc.dim(" (optional)"),
+        initial: "",
+      },
+      {
+        type: isInMicroserviceProject || isCI ? null : "text",
+        name: "keywords",
+        message: pc.cyan("Keywords") + pc.dim(" (comma-separated, optional)"),
+        initial: "",
+      },
+      {
+        type:
+          isInMicroserviceProject || (hasCliArgs && cliProjectType) || isCI
+            ? null
+            : "select",
+        name: "projectType",
+        message: pc.cyan("Project type"),
+        choices: [
+          { title: pc.blue("Monolith API"), value: "monolith" },
+          { title: pc.magenta("Microservice"), value: "microservice" },
+        ],
+      },
+      {
+        type: (prev, values) => {
+          // Skip if in existing microservice project or CI mode
+          if (isInMicroserviceProject || isCI) return null;
+
+          // Get projectType from previous answers or CLI args
+          const projectType = prev || cliProjectType || values.projectType;
+
+          // Show prompt only if projectType is microservice
+          return projectType === "microservice" ? "select" : null;
+        },
+        name: "mode",
+        message: pc.cyan("Microservice setup"),
+        choices: [
+          { title: pc.blue("With Docker 🐳"), value: "docker" },
+          { title: pc.yellow("Without Docker (PM2)"), value: "nodocker" },
+        ],
+      },
+      {
+        type: isInMicroserviceProject ? "text" : isCI ? null : "multiselect",
+        name: isInMicroserviceProject ? "serviceName" : "features",
+        message: isInMicroserviceProject
+          ? pc.cyan("New service name") +
+            pc.dim(" (e.g., user-service, order-service)")
+          : pc.cyan("Select features"),
+        choices: isInMicroserviceProject
+          ? undefined
+          : [
+              { title: pc.blue("CORS"), value: "cors" },
+              { title: pc.yellow("Rate Limiter"), value: "rate-limit" },
+              { title: pc.green("Helmet"), value: "helmet" },
+              { title: pc.magenta("Morgan (HTTP logger)"), value: "morgan" },
+            ],
+      },
+      {
+        type: isCI ? null : "toggle",
+        name: "auth",
+        message: isInMicroserviceProject
+          ? pc.cyan("Include authentication in this service?")
+          : pc.cyan("Include authentication system?"),
+        initial: true,
+        active: pc.green("yes"),
+        inactive: pc.red("no"),
+      },
+      {
+        type: isInMicroserviceProject && !isCI ? "multiselect" : null,
+        name: "features",
+        message: pc.cyan("Select features for this service"),
+        choices: [
+          { title: pc.yellow("Rate Limiter"), value: "rate-limit" },
+          { title: pc.green("Helmet"), value: "helmet" },
+          { title: pc.magenta("Morgan (HTTP logger)"), value: "morgan" },
+          { title: pc.blue("CORS"), value: "cors" },
+        ],
+      },
+      {
+        type: isInMicroserviceProject || isCI ? null : "select",
+        name: "projectScope",
+        message: pc.cyan("Is this a team or individual project?"),
+        choices: [
+          { title: pc.green("Team project"), value: "team" },
+          { title: pc.yellow("Individual project"), value: "individual" },
+        ],
+        initial: 0,
+      },
+    ],
     {
-      type: isInMicroserviceProject ? "text" : isCI ? null : "multiselect",
-      name: isInMicroserviceProject ? "serviceName" : "features",
-      message: isInMicroserviceProject
-        ? pc.cyan("New service name") + pc.dim(" (e.g., user-service, order-service)")
-        : pc.cyan("Select features"),
-      choices: isInMicroserviceProject
-        ? undefined
-        : [
-            { title: pc.blue("CORS"), value: "cors" },
-            { title: pc.yellow("Rate Limiter"), value: "rate-limit" },
-            { title: pc.green("Helmet"), value: "helmet" },
-            { title: pc.magenta("Morgan (HTTP logger)"), value: "morgan" },
-          ],
+      onCancel: () => {
+        console.log(pc.yellow("\n❌ Operation cancelled by user."));
+        process.exit(0);
+      },
     },
-    {
-      type: isCI ? null : "toggle",
-      name: "auth",
-      message: isInMicroserviceProject
-        ? pc.cyan("Include authentication in this service?")
-        : pc.cyan("Include authentication system?"),
-      initial: true,
-      active: pc.green("yes"),
-      inactive: pc.red("no"),
-    },
-    {
-      type: isInMicroserviceProject && !isCI ? "multiselect" : null,
-      name: "features",
-      message: pc.cyan("Select features for this service"),
-      choices: [
-        { title: pc.yellow("Rate Limiter"), value: "rate-limit" },
-        { title: pc.green("Helmet"), value: "helmet" },
-        { title: pc.magenta("Morgan (HTTP logger)"), value: "morgan" },
-        { title: pc.blue("CORS"), value: "cors" },
-      ],
-    },
-  ],
-  {
-    onCancel: () => {
-      console.log(pc.yellow("\n❌ Operation cancelled by user."));
-      process.exit(0);
-    }
-  });
+  );
 
   // Handle cancelled prompts (user pressed Ctrl+C or closed the prompt)
   // Check if user cancelled the prompt (Ctrl+C) vs just didn't enter anything
@@ -175,6 +190,7 @@ export const getProjectConfig = async () => {
     res.auth = res.auth ?? false;
     res.mode = res.mode || "docker"; // Default to docker in CI
     res.language = res.language || "typescript"; // Default to TypeScript in CI
+    res.projectScope = res.projectScope || "team";
   }
 
   // Merge CLI args with prompted responses
@@ -192,6 +208,9 @@ export const getProjectConfig = async () => {
   if (!res.name && !isInMicroserviceProject) {
     res.name = "my-backend";
   }
+
+  // Derive a CI/CD preference from the project scope so later generators can use it.
+  res.cicd = !isInMicroserviceProject && res.projectScope !== "individual";
 
   let sanitizedName, target, isExistingProject, mode;
 
