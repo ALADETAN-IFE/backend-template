@@ -159,6 +159,7 @@ type: commit message
 ### Allowed Types
 
 - `feat` — new feature
+- `feat!/` — breaking change feature
 - `fix` — bug fix
 - `refactor` — code restructuring
 - `chore` — routine tasks 
