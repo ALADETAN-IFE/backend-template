@@ -24,7 +24,7 @@ export const setupService = async (
   serviceRoot,
   shouldIncludeAuth,
   allServices = [],
-  skipInstall = false
+  skipInstall = false,
 ) => {
   let imports = [];
   let middlewares = [];
@@ -95,15 +95,15 @@ export const setupService = async (
     const templateExt = res.language === "javascript" ? ".js" : ".ts";
     const templateDir = path.join(
       __dirname,
-      `../../template/gateway/${tmplLang}`
+      `../../template/gateway/${tmplLang}`,
     );
     const gatewayAppContent = fs.readFileSync(
       path.join(templateDir, `app${templateExt}`),
-      "utf8"
+      "utf8",
     );
     const gatewayServerContent = fs.readFileSync(
       path.join(templateDir, `server${templateExt}`),
-      "utf8"
+      "utf8",
     );
 
     // Generate routes for all services with mode (docker or nodocker)
@@ -235,7 +235,7 @@ export const setupService = async (
       v1Imports.push(
         baseAuth.getImports
           ? baseAuth.getImports(res.language)
-          : baseAuth.imports
+          : baseAuth.imports,
       );
       v1Routes.push(baseAuth.middleware);
     }
@@ -244,7 +244,7 @@ export const setupService = async (
     if (!res.validation) {
       const healthRoutePath = path.join(
         serviceRoot,
-        `src/modules/v1/health/health.route.${ext}`
+        `src/modules/v1/health/health.route.${ext}`,
       );
       if (fs.existsSync(healthRoutePath)) {
         let healthContent = fs.readFileSync(healthRoutePath, "utf8");
@@ -254,12 +254,12 @@ export const setupService = async (
           healthContent = healthContent
             .replace(
               /import\s+\{\s*methodNotAllowedHandler,\s*validateRequest\s*\}\s+from\s+["']@\/middlewares["'];?\s*/,
-              "import { methodNotAllowedHandler } from \"@/middlewares\";\n"
+              'import { methodNotAllowedHandler } from "@/middlewares";\n',
             )
             .replace(/import\s+\{\s*z\s*\}\s+from\s+["']zod["'];?\s*/, "")
             .replace(
               "const healthQuerySchema = z\n  .object({\n    verbose: z.coerce.boolean().optional(),\n  })\n  .strict();\n\n",
-              ""
+              "",
             )
             .replace(", validateRequest({ query: healthQuerySchema })", "");
         } else {
@@ -267,11 +267,11 @@ export const setupService = async (
             .replace("const { z } = require('zod');\n", "")
             .replace(
               /const {[\s\S]*?validateRequest[\s\S]*?} = require\('\.\.\/\.\.\/\.\.\/middlewares'\);/,
-              "const { methodNotAllowedHandler } = require('../../../middlewares');"
+              "const { methodNotAllowedHandler } = require('../../../middlewares');",
             )
             .replace(
               "const healthQuerySchema = z\n  .object({\n    verbose: z.coerce.boolean().optional(),\n  })\n  .strict();\n\n",
-              ""
+              "",
             )
             .replace(", validateRequest({ query: healthQuerySchema })", "");
         }
@@ -287,36 +287,48 @@ export const setupService = async (
       const baseDir = path.dirname(fileURLToPath(import.meta.url));
       const healthControllerSourcePath = path.join(
         baseDir,
-        `../../template/base/${ext}/src/modules/v1/health/health.controller.auth.${ext}`
+        `../../template/base/${ext}/src/modules/v1/health/health.controller.auth.${ext}`,
       );
       const healthControllerTargetPath = path.join(
         serviceRoot,
-        `src/modules/v1/health/health.controller.${ext}`
+        `src/modules/v1/health/health.controller.${ext}`,
       );
 
       if (fs.existsSync(healthControllerSourcePath)) {
         const healthControllerContent = fs.readFileSync(
           healthControllerSourcePath,
-          "utf8"
+          "utf8",
         );
         fs.writeFileSync(healthControllerTargetPath, healthControllerContent);
       }
     } else {
       const healthControllerSourcePath = path.join(
         baseDir,
-        `../../template/base/${ext}/src/modules/v1/health/health.controller.${ext}`
+        `../../template/base/${ext}/src/modules/v1/health/health.controller.${ext}`,
       );
       const healthControllerTargetPath = path.join(
         serviceRoot,
-        `src/modules/v1/health/health.controller.${ext}`
+        `src/modules/v1/health/health.controller.${ext}`,
       );
 
       if (fs.existsSync(healthControllerSourcePath)) {
         const healthControllerContent = fs.readFileSync(
           healthControllerSourcePath,
-          "utf8"
+          "utf8",
         );
         fs.writeFileSync(healthControllerTargetPath, healthControllerContent);
+      }
+    }
+
+    // Remove the auth-aware health controller when auth is disabled so TypeScript
+    // does not try to compile a mongoose-dependent file in non-auth projects.
+    if (!res.auth) {
+      const authHealthControllerPath = path.join(
+        serviceRoot,
+        `src/modules/v1/health/health.controller.auth.${ext}`,
+      );
+      if (fs.existsSync(authHealthControllerPath)) {
+        fs.rmSync(authHealthControllerPath, { force: true });
       }
     }
 
@@ -324,7 +336,7 @@ export const setupService = async (
     if (!res.validation && shouldIncludeAuth && res.auth) {
       const authRoutePath = path.join(
         serviceRoot,
-        `src/modules/v1/auth/auth.routes.${ext}`
+        `src/modules/v1/auth/auth.routes.${ext}`,
       );
       if (fs.existsSync(authRoutePath)) {
         let authContent = fs.readFileSync(authRoutePath, "utf8");
@@ -332,7 +344,10 @@ export const setupService = async (
         // Remove validation imports and usage if not enabled
         if (ext === "ts") {
           authContent = authContent
-            .replace(/import\s+\{\s*validateRequest\s*\}\s+from\s+["']@\/middlewares["'];?\s*/, "")
+            .replace(
+              /import\s+\{\s*validateRequest\s*\}\s+from\s+["']@\/middlewares["'];?\s*/,
+              "",
+            )
             .replace(/import\s+\{\s*z\s*\}\s+from\s+["']zod["'];?\s*/, "")
             .replace(/const \w+Schema = z[\s\S]*?\.strict\(\);?\n\n/, "")
             .replace(/, validateRequest\({ body: \w+Schema \}\)/g, "");
@@ -341,7 +356,7 @@ export const setupService = async (
             .replace('const { z } = require("zod");\n', "")
             .replace(
               /const {[\s\S]*?validateRequest[\s\S]*?} = require\("\.\.\/\.\.\/\.\.\/middlewares"\);/,
-              'const { methodNotAllowedHandler } = require("../../../middlewares");'
+              'const { methodNotAllowedHandler } = require("../../../middlewares");',
             )
             .replace(/const \w+Schema = z[\s\S]*?\.strict\(\);?\n\n/, "")
             .replace(/, validateRequest\({ body: \w+Schema \}\)/g, "");
@@ -363,24 +378,24 @@ export const setupService = async (
     // Update root endpoint middleware with project info
     const rootMiddlewarePath = path.join(
       serviceRoot,
-      `src/middlewares/root.middleware.${ext}`
+      `src/middlewares/root.middleware.${ext}`,
     );
     if (fs.existsSync(rootMiddlewarePath)) {
       let rootContent = fs.readFileSync(rootMiddlewarePath, "utf8");
       rootContent = rootContent.replace(
         "/*__PROJECT_NAME__*/",
-        serviceName || res.sanitizedName
+        serviceName || res.sanitizedName,
       );
       rootContent = rootContent.replace(
         "/*__PROJECT_TYPE__*/",
-        res.projectType
+        res.projectType,
       );
 
       // Add auth endpoint if auth is enabled
       if (shouldIncludeAuth && res.auth) {
         rootContent = rootContent.replace(
           "/*__AUTH_ENDPOINT__*/",
-          'auth: "/api/v1/auth",'
+          'auth: "/api/v1/auth",',
         );
       } else {
         rootContent = rootContent.replace("/*__AUTH_ENDPOINT__*/", "");
@@ -423,7 +438,7 @@ export const setupService = async (
         if (!appContent.includes("import { ENV } from")) {
           appContent = appContent.replace(
             "/*__IMPORTS__*/",
-            "import { ENV } from '@/config';\n/*__IMPORTS__*/"
+            "import { ENV } from '@/config';\n/*__IMPORTS__*/",
           );
           fs.writeFileSync(appPath, appContent);
         }
@@ -434,7 +449,7 @@ export const setupService = async (
         const assertion = res.language === "javascript" ? "" : "!";
         envContent = envContent.replace(
           "/*__ALLOWED_ORIGIN__*/",
-          `ALLOWED_ORIGIN: process.env.ALLOWED_ORIGIN${assertion},`
+          `ALLOWED_ORIGIN: process.env.ALLOWED_ORIGIN${assertion},`,
         );
       } else {
         envContent = envContent.replace("/*__ALLOWED_ORIGIN__*/", "");
@@ -445,11 +460,11 @@ export const setupService = async (
         const assertion = res.language === "javascript" ? "" : "!";
         envContent = envContent.replace(
           "/*__MONGO_URI__*/",
-          `MONGO_URI: process.env.MONGO_URI${assertion},`
+          `MONGO_URI: process.env.MONGO_URI${assertion},`,
         );
         envContent = envContent.replace(
           "/*__JWT_SECRET__*/",
-          `JWT_SECRET: process.env.JWT_SECRET${assertion},`
+          `JWT_SECRET: process.env.JWT_SECRET${assertion},`,
         );
       } else {
         envContent = envContent.replace("/*__MONGO_URI__*/", "");
@@ -469,17 +484,17 @@ export const setupService = async (
         if (language === "javascript") {
           serverContent = serverContent.replace(
             "/*__DB_IMPORT__*/",
-            ", connectDB"
+            ", connectDB",
           );
         } else {
           serverContent = serverContent.replace(
             "/*__DB_IMPORT__*/",
-            'import { connectDB } from "./config";'
+            'import { connectDB } from "./config";',
           );
         }
         serverContent = serverContent.replace(
           "/*__DB_CONNECT__*/",
-          `// Connect to MongoDB\nawait connectDB();`
+          `// Connect to MongoDB\nawait connectDB();`,
         );
       } else {
         serverContent = serverContent.replace("/*__DB_IMPORT__*/", "");
@@ -499,12 +514,12 @@ export const setupService = async (
         if (res.features && res.features.includes("cors")) {
           envExampleContent = envExampleContent.replace(
             "/*__ALLOWED_ORIGIN_ENV__*/",
-            "ALLOWED_ORIGIN=http://localhost:3000"
+            "ALLOWED_ORIGIN=http://localhost:3000",
           );
         } else {
           envExampleContent = envExampleContent.replace(
             "/*__ALLOWED_ORIGIN_ENV__*/",
-            ""
+            "",
           );
         }
 
@@ -512,20 +527,20 @@ export const setupService = async (
         if (shouldIncludeAuth && res.auth) {
           envExampleContent = envExampleContent.replace(
             "/*__MONGO_URI_ENV__*/",
-            "MONGO_URI=mongodb://localhost:27017/your-database-name"
+            "MONGO_URI=mongodb://localhost:27017/your-database-name",
           );
           envExampleContent = envExampleContent.replace(
             "/*__JWT_SECRET_ENV__*/",
-            "JWT_SECRET=your-super-secret-jwt-key-change-this-in-production"
+            "JWT_SECRET=your-super-secret-jwt-key-change-this-in-production",
           );
         } else {
           envExampleContent = envExampleContent.replace(
             "/*__MONGO_URI_ENV__*/",
-            ""
+            "",
           );
           envExampleContent = envExampleContent.replace(
             "/*__JWT_SECRET_ENV__*/",
-            ""
+            "",
           );
         }
 
@@ -566,16 +581,16 @@ export const setupService = async (
     if (serviceName !== "gateway") {
       const healthControllerPath = path.join(
         serviceRoot,
-        `src/modules/v1/health/health.controller.${ext}`
+        `src/modules/v1/health/health.controller.${ext}`,
       );
       if (fs.existsSync(healthControllerPath)) {
         let healthControllerContent = fs.readFileSync(
           healthControllerPath,
-          "utf8"
+          "utf8",
         );
         healthControllerContent = healthControllerContent.replace(
           'from "@/utils"',
-          'from "@/shared/utils"'
+          'from "@/shared/utils"',
         );
         fs.writeFileSync(healthControllerPath, healthControllerContent);
       }
@@ -610,11 +625,11 @@ export const setupService = async (
         serverContent = serverContent
           .replace(
             /from\s+["'](?:@\/utils|\.\/utils|\.\.\/utils)["']/g,
-            'from "@/shared/utils"'
+            'from "@/shared/utils"',
           )
           .replace(
             /from\s+["'](?:@\/config|\.\/config|\.\.\/config)["']/g,
-            'from "@/shared/config"'
+            'from "@/shared/config"',
           );
 
         // Update PORT to use service-specific environment variable and a correct default port.
@@ -625,7 +640,7 @@ export const setupService = async (
         if (portRegex.test(serverContent)) {
           serverContent = serverContent.replace(
             portRegex,
-            `const PORT = ENV.${portEnvVar} || ${serverPort};`
+            `const PORT = ENV.${portEnvVar} || ${serverPort};`,
           );
         } else {
           // Fallback: replace a simple numeric default or a bare PORT assignment
@@ -633,7 +648,7 @@ export const setupService = async (
           if (simplePortRegex.test(serverContent)) {
             serverContent = serverContent.replace(
               simplePortRegex,
-              `const PORT = ENV.${portEnvVar} || ${serverPort};`
+              `const PORT = ENV.${portEnvVar} || ${serverPort};`,
             );
           } else {
             // Last resort: append a PORT assignment near the top after imports
@@ -695,7 +710,7 @@ export const setupService = async (
     if (finalPackageJson.scripts && finalPackageJson.scripts.dev) {
       finalPackageJson.scripts.dev = finalPackageJson.scripts.dev.replace(
         "ts-node-dev --respawn --transpile-only",
-        "ts-node-dev --respawn --transpile-only --poll"
+        "ts-node-dev --respawn --transpile-only --poll",
       );
     }
   }
@@ -751,7 +766,7 @@ export const setupService = async (
 
   fs.writeFileSync(
     packageJsonPath,
-    JSON.stringify(finalPackageJson, null, 2) + "\n"
+    JSON.stringify(finalPackageJson, null, 2) + "\n",
   );
 
   // Skip installation if skipInstall is true (will be done later in batch)
@@ -761,7 +776,9 @@ export const setupService = async (
 
   // Install dependencies
   console.log(
-    pc.cyan(`\n📦 Installing dependencies for ${serviceName || "project"}...\n`)
+    pc.cyan(
+      `\n📦 Installing dependencies for ${serviceName || "project"}...\n`,
+    ),
   );
 
   let installSucceeded = false;
@@ -789,15 +806,15 @@ export const setupService = async (
     } catch (formatError) {
       console.warn(
         pc.yellow(
-          "⚠️  Warning: Code formatting failed. You can run it manually later with: npm run format\n"
-        )
+          "⚠️  Warning: Code formatting failed. You can run it manually later with: npm run format\n",
+        ),
       );
     }
   } catch (error) {
     console.error(pc.red("\n❌ Failed to install dependencies"));
     console.error(pc.dim(`\nYou can install them later by running:`));
     console.error(
-      pc.cyan(`   cd ${serviceName || res.sanitizedName} && npm install`)
+      pc.cyan(`   cd ${serviceName || res.sanitizedName} && npm install`),
     );
     console.error(pc.dim("   Then run: npm run format\n"));
 
