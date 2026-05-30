@@ -248,34 +248,71 @@ export const setupService = async (
       );
       if (fs.existsSync(healthRoutePath)) {
         let healthContent = fs.readFileSync(healthRoutePath, "utf8");
-
-        // Remove validation imports and schema if not enabled
+        // Remove validation-related imports, schema definitions and usages more robustly
+        // Remove z import, validateRequest import, any const <name> = z... schema blocks,
+        // and usages like ", validateRequest({ query: <name> })".
         if (ext === "ts") {
-          healthContent = healthContent
-            .replace(
-              /import\s+\{\s*methodNotAllowedHandler,\s*validateRequest\s*\}\s+from\s+["']@\/middlewares["'];?\s*/,
-              'import { methodNotAllowedHandler } from "@/middlewares";\n',
-            )
-            .replace(/import\s+\{\s*z\s*\}\s+from\s+["']zod["'];?\s*/, "")
-            .replace(
-              "const healthQuerySchema = z\n  .object({\n    verbose: z.coerce.boolean().optional(),\n  })\n  .strict();\n\n",
-              "",
-            )
-            .replace(", validateRequest({ query: healthQuerySchema })", "");
-        } else {
-          healthContent = healthContent
-            .replace("const { z } = require('zod');\n", "")
-            .replace(
-              /const {[\s\S]*?validateRequest[\s\S]*?} = require\('\.\.\/\.\.\/\.\.\/middlewares'\);/,
-              "const { methodNotAllowedHandler } = require('../../../middlewares');",
-            )
-            .replace(
-              "const healthQuerySchema = z\n  .object({\n    verbose: z.coerce.boolean().optional(),\n  })\n  .strict();\n\n",
-              "",
-            )
-            .replace(", validateRequest({ query: healthQuerySchema })", "");
-        }
+          // Remove validateRequest from middlewares import, keep methodNotAllowedHandler
+          healthContent = healthContent.replace(
+            /import\s+\{([\s\S]*?)\}\s+from\s+["']@\/middlewares["'];?/m,
+            (m, p1) => {
+              const parts = p1
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean)
+                .filter((name) => name !== "validateRequest");
+              return `import { ${parts.join(", ")} } from "@/middlewares";\n`;
+            },
+          );
 
+          // Remove any import of z from zod
+          healthContent = healthContent.replace(
+            /import\s+\{\s*z\s*\}\s+from\s+["']zod["'];?\s*/g,
+            "",
+          );
+
+          // Remove any const <identifier> = z...; schema blocks (non-greedy)
+          healthContent = healthContent.replace(
+            /const\s+\w+\s*=\s*z[\s\S]*?;\s*\n\n/gm,
+            "",
+          );
+
+          // Remove validateRequest usage patterns
+          healthContent = healthContent.replace(
+            /,\s*validateRequest\s*\(\{[\s\S]*?\}\)/g,
+            "",
+          );
+        } else {
+          // JS: remove require('zod') and adjust middleware require
+          healthContent = healthContent.replace(
+            /const\s+\{\s*z\s*\}\s*=\s*require\(['\"]zod['\"]\);?\s*/g,
+            "",
+          );
+
+          healthContent = healthContent.replace(
+            /const\s+\{([\s\S]*?)\}\s*=\s*require\(['\"][\s\S]*?middlewares['\"]\);?/m,
+            (m, p1) => {
+              const parts = p1
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean)
+                .filter((name) => name !== "validateRequest");
+              return `const { ${parts.join(
+                ", ",
+              )} } = require('../../../middlewares');`;
+            },
+          );
+
+          // Remove schema const blocks and validateRequest usages
+          healthContent = healthContent.replace(
+            /const\s+\w+\s*=\s*z[\s\S]*?;\s*\n\n/gm,
+            "",
+          );
+          healthContent = healthContent.replace(
+            /,\s*validateRequest\s*\(\{[\s\S]*?\}\)/g,
+            "",
+          );
+        }
         fs.writeFileSync(healthRoutePath, healthContent);
       }
     }
@@ -340,28 +377,65 @@ export const setupService = async (
       );
       if (fs.existsSync(authRoutePath)) {
         let authContent = fs.readFileSync(authRoutePath, "utf8");
-
-        // Remove validation imports and usage if not enabled
+        // Remove validation-related imports, zod schema blocks and usages robustly
         if (ext === "ts") {
-          authContent = authContent
-            .replace(
-              /import\s+\{\s*validateRequest\s*\}\s+from\s+["']@\/middlewares["'];?\s*/,
-              "",
-            )
-            .replace(/import\s+\{\s*z\s*\}\s+from\s+["']zod["'];?\s*/, "")
-            .replace(/const \w+Schema = z[\s\S]*?\.strict\(\);?\n\n/, "")
-            .replace(/, validateRequest\({ body: \w+Schema \}\)/g, "");
-        } else {
-          authContent = authContent
-            .replace('const { z } = require("zod");\n', "")
-            .replace(
-              /const {[\s\S]*?validateRequest[\s\S]*?} = require\("\.\.\/\.\.\/\.\.\/middlewares"\);/,
-              'const { methodNotAllowedHandler } = require("../../../middlewares");',
-            )
-            .replace(/const \w+Schema = z[\s\S]*?\.strict\(\);?\n\n/, "")
-            .replace(/, validateRequest\({ body: \w+Schema \}\)/g, "");
-        }
+          authContent = authContent.replace(
+            /import\s+\{([\s\S]*?)\}\s+from\s+["']@\/middlewares["'];?/m,
+            (m, p1) => {
+              const parts = p1
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean)
+                .filter((name) => name !== "validateRequest");
+              return parts.length
+                ? `import { ${parts.join(", ")} } from "@/middlewares";\n`
+                : "";
+            },
+          );
 
+          authContent = authContent.replace(
+            /import\s+\{\s*z\s*\}\s+from\s+["']zod["'];?\s*/g,
+            "",
+          );
+          authContent = authContent.replace(
+            /const\s+\w+Schema\s*=\s*z[\s\S]*?;\s*\n\n/gm,
+            "",
+          );
+          authContent = authContent.replace(
+            /,\s*validateRequest\s*\(\{[\s\S]*?\}\)/g,
+            "",
+          );
+        } else {
+          authContent = authContent.replace(
+            /const\s+\{\s*z\s*\}\s*=\s*require\(['\"]zod['\"]\);?\s*/g,
+            "",
+          );
+
+          authContent = authContent.replace(
+            /const\s+\{([\s\S]*?)\}\s*=\s*require\(['\"](?:\.\.\/)*middlewares['\"]\);?/m,
+            (m, p1) => {
+              const parts = p1
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean)
+                .filter((name) => name !== "validateRequest");
+              return parts.length
+                ? `const { ${parts.join(
+                    ", ",
+                  )} } = require('../../../middlewares');`
+                : "const { methodNotAllowedHandler } = require('../../../middlewares');";
+            },
+          );
+
+          authContent = authContent.replace(
+            /const\s+\w+Schema\s*=\s*z[\s\S]*?;\s*\n\n/gm,
+            "",
+          );
+          authContent = authContent.replace(
+            /,\s*validateRequest\s*\(\{[\s\S]*?\}\)/g,
+            "",
+          );
+        }
         fs.writeFileSync(authRoutePath, authContent);
       }
     }
