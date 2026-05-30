@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { createRequire } from "module";
+import { createRequire } from 'module';
+import path from 'path';
 const requireC = createRequire(import.meta.url);
-const { routeRegistry } = requireC(
-  "./template/base/js/src/docs/route-registry.js"
-);
+const routeRegistryPath = path.join(process.cwd(), 'template', 'base', 'js', 'src', 'docs', 'route-registry.js');
+const { routeRegistry } = requireC(routeRegistryPath);
 
 describe("routeRegistry", () => {
   beforeEach(() => {

@@ -1,9 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { createRequire } from "module";
+process.env.PORT = process.env.PORT || '4000';
+process.env.NODE_ENV = process.env.NODE_ENV || 'test';
+import { createRequire } from 'module';
+import path from 'path';
 const requireC = createRequire(import.meta.url);
-const { healthCheck } = requireC(
-  "./template/base/js/src/modules/v1/health/health.controller.js"
-);
+const healthPath = path.join(process.cwd(), 'template', 'base', 'js', 'src', 'modules', 'v1', 'health', 'health.controller.js');
+const { healthCheck } = requireC(healthPath);
 
 describe("health controller", () => {
   it("returns healthy JSON with memory info", async () => {
