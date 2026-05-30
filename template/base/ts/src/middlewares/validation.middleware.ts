@@ -28,7 +28,7 @@ export const validateRequest = (schemas: RequestSchemas) => {
       }
 
       if (schemas.params) {
-        req.params = schemas.params.parse(req.params);
+        req.params = schemas.params.parse(req.params) as Request["params"];
       }
 
       next();
