@@ -37,7 +37,6 @@ jobs:
           cors
           helmet
           morgan
-          y
           bcrypt
           EOF
 
@@ -54,7 +53,6 @@ jobs:
           docker
           cors
           helmet
-          y
           bcrypt
           EOF
 
