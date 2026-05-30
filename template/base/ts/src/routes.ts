@@ -2,7 +2,7 @@ import { Router } from "express";
 import modulesRouter from "./modules";
 import { notFound, rootHandler } from "./middlewares";
 import swaggerUi from "swagger-ui-express";
-import { routeRegistry } from "./docs/route-registry";
+import { routeRegistry } from "./docs";
 
 const router = Router();
 

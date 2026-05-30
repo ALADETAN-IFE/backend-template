@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { healthCheck } from './health.controller';
 import { methodNotAllowedHandler, validateRequest } from '@/middlewares';
 import { z } from 'zod';
-import { routeRegistry } from '@/docs/route-registry';
+import { routeRegistry } from '@/docs';
 
 const router = Router();
 const healthQuerySchema = z

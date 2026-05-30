@@ -2,7 +2,7 @@ const { Router } = require("express");
 const { register, login } = require("./auth.controller");
 const { methodNotAllowedHandler, validateRequest } = require("../../../middlewares");
 const { z } = require("zod");
-const { routeRegistry } = require("../../../docs/route-registry");
+const { routeRegistry } = require("../../../docs");
 
 const router = Router();
 

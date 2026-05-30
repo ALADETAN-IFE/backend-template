@@ -2,7 +2,7 @@ const { Router } = require('express');
 const modulesRouter = require('./modules');
 const { notFound, rootHandler } = require('./middlewares');
 const swaggerUi = require('swagger-ui-express');
-const { routeRegistry } = require('./docs/route-registry');
+const { routeRegistry } = require('./docs');
 
 const router = Router();
 

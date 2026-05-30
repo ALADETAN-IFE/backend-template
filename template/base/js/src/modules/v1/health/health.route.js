@@ -5,7 +5,7 @@ const {
   methodNotAllowedHandler,
   validateRequest,
 } = require('../../../middlewares');
-const { routeRegistry } = require('../../../docs/route-registry');
+const { routeRegistry } = require('../../../docs');
 
 const router = Router();
 const healthQuerySchema = z

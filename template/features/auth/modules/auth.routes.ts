@@ -2,7 +2,7 @@ import { Router } from "express";
 import { register, login } from "./auth.controller";
 import { methodNotAllowedHandler, validateRequest } from "@/middlewares";
 import { z } from "zod";
-import { routeRegistry } from "@/docs/route-registry";
+import { routeRegistry } from "@/docs";
 
 const router = Router();
 
