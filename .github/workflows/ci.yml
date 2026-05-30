@@ -30,19 +30,45 @@ jobs:
       - name: Run linter
         run: npm run lint --if-present
 
-      - name: Test CLI generation (Monolith)
+      - name: Test CLI generation (Monolith — no auth)
         shell: bash
+        env:
+          CI: false
         run: |
-          node bin/cli.js test-mono mono << EOF
+          node bin/cli.js test-mono-noauth mono << 'EOF'
           cors
           helmet
           morgan
           bcrypt
+          n
+          team
+          n
           EOF
 
-      - name: Verify monolith project
+      - name: Verify monolith project (no auth)
         run: |
-          cd test-mono
+          cd test-mono-noauth
+          npm install
+          npm run build
+
+      - name: Test CLI generation (Monolith — auth)
+        shell: bash
+        env:
+          CI: false
+        run: |
+          node bin/cli.js test-mono-auth mono << 'EOF'
+          cors
+          helmet
+          morgan
+          bcrypt
+          y
+          team
+          n
+          EOF
+
+      - name: Verify monolith project (auth)
+        run: |
+          cd test-mono-auth
           npm install
           npm run build
 
@@ -65,5 +91,5 @@ jobs:
       - name: Cleanup test projects
         shell: bash
         run: |
-          rm -rf test-mono test-micro
+          rm -rf test-mono-noauth test-mono-auth test-micro
         if: always()
