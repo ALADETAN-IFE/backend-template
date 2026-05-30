@@ -1,11 +1,19 @@
 import { NextFunction, Request, Response } from "express";
-import { ZodError, ZodSchema } from "zod";
 import { BadRequestError } from "@/utils";
 
 type RequestSchemas = {
-  body?: ZodSchema;
-  query?: ZodSchema;
-  params?: ZodSchema;
+  body?: { parse: (value: unknown) => unknown };
+  query?: { parse: (value: unknown) => unknown };
+  params?: { parse: (value: unknown) => unknown };
+};
+
+const isValidationError = (error: unknown): error is { issues: Array<{ path?: Array<string | number>; message: string }> } => {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "issues" in error &&
+    Array.isArray((error as { issues?: unknown }).issues)
+  );
 };
 
 export const validateRequest = (schemas: RequestSchemas) => {
@@ -24,10 +32,10 @@ export const validateRequest = (schemas: RequestSchemas) => {
       }
 
       next();
-    } catch (error) {
-      if (error instanceof ZodError) {
+    } catch (error: unknown) {
+      if (isValidationError(error)) {
         const issues = error.issues
-          .map((issue) => `${issue.path.join(".") || "request"}: ${issue.message}`)
+          .map((issue) => `${issue.path?.join(".") || "request"}: ${issue.message}`)
           .join("; ");
         return next(new BadRequestError(`Request validation failed - ${issues}`));
       }

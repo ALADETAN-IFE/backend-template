@@ -1079,6 +1079,26 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
   const result = await setupService(config, null, target, true);
   config.installSucceeded = result.installSucceeded;
 
+  try {
+    if (result.deps && result.deps.length) {
+      execSync(`npm install ${result.deps.join(" ")}`, {
+        cwd: target,
+        stdio: "inherit",
+      });
+    }
+    if (result.devDeps && result.devDeps.length) {
+      execSync(`npm install -D ${result.devDeps.join(" ")}`, {
+        cwd: target,
+        stdio: "inherit",
+      });
+    }
+    execSync("npm install", { cwd: target, stdio: "inherit" });
+  } catch (error) {
+    console.error(pc.red("\n❌ Failed to install monolith dependencies"));
+    console.error(pc.dim(`\nYou can install them later by running:`));
+    console.error(pc.cyan(`   cd ${target} && npm install\n`));
+  }
+
   // Safety net: ensure eslint.config.js exists in generated monolith projects
   const templateEslintConfig = path.join(base, "eslint.config.js");
   const generatedEslintConfig = path.join(target, "eslint.config.js");

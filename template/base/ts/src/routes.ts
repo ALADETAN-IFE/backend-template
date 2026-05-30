@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { NextFunction, Request, Response, Router } from "express";
 import modulesRouter from "./modules";
 import { notFound, rootHandler } from "./middlewares";
 import swaggerUi from "swagger-ui-express";
@@ -10,7 +10,7 @@ const router = Router();
 router.get("/", rootHandler);
 
 // Swagger UI with auto-generated spec
-router.use("/api-docs", swaggerUi.serve, (_req, res, next) => {
+router.use("/api-docs", swaggerUi.serve, (_req: Request, res: Response, next: NextFunction) => {
   const spec = routeRegistry.generateOpenAPI("/*__PROJECT_NAME__*/", "1.0.0");
   swaggerUi.setup(spec)(_req, res, next);
 });

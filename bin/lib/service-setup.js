@@ -253,10 +253,10 @@ export const setupService = async (
         if (ext === "ts") {
           healthContent = healthContent
             .replace(
-              "import { methodNotAllowedHandler, validateRequest } from '@/middlewares';\n",
-              "import { methodNotAllowedHandler } from '@/middlewares';\n"
+              /import\s+\{\s*methodNotAllowedHandler,\s*validateRequest\s*\}\s+from\s+["']@\/middlewares["'];?\s*/,
+              "import { methodNotAllowedHandler } from \"@/middlewares\";\n"
             )
-            .replace("import { z } from 'zod';\n", "")
+            .replace(/import\s+\{\s*z\s*\}\s+from\s+["']zod["'];?\s*/, "")
             .replace(
               "const healthQuerySchema = z\n  .object({\n    verbose: z.coerce.boolean().optional(),\n  })\n  .strict();\n\n",
               ""
@@ -332,8 +332,8 @@ export const setupService = async (
         // Remove validation imports and usage if not enabled
         if (ext === "ts") {
           authContent = authContent
-            .replace('import { validateRequest } from "@/middlewares";\n', "")
-            .replace('import { z } from "zod";\n', "")
+            .replace(/import\s+\{\s*validateRequest\s*\}\s+from\s+["']@\/middlewares["'];?\s*/, "")
+            .replace(/import\s+\{\s*z\s*\}\s+from\s+["']zod["'];?\s*/, "")
             .replace(/const \w+Schema = z[\s\S]*?\.strict\(\);?\n\n/, "")
             .replace(/, validateRequest\({ body: \w+Schema \}\)/g, "");
         } else {
