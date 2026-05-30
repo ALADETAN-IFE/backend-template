@@ -19,14 +19,17 @@ export interface RouteDoc {
       };
     };
   };
-  responses: Record<number | string, {
-    description: string;
-    content?: {
-      "application/json": {
-        schema?: Record<string, unknown>;
+  responses: Record<
+    number | string,
+    {
+      description: string;
+      content?: {
+        "application/json": {
+          schema?: Record<string, unknown>;
+        };
       };
-    };
-  }>;
+    }
+  >;
 }
 
 export interface RouteSchema {

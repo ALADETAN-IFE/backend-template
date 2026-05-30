@@ -151,7 +151,8 @@ export const getFiles = (language = "typescript") => {
     ...modelFiles,
     ...utilFiles,
     [`src/config/db${ext}`]: getDbContent(language),
-    [`src/modules/v1/health/health.controller${ext}`]: getHealthControllerContent(language),
+    [`src/modules/v1/health/health.controller${ext}`]:
+      getHealthControllerContent(language),
   };
 };
 
@@ -160,9 +161,10 @@ export const files = getFiles("typescript");
 
 export const imports = `import { authRoutes } from "./auth";`;
 
-export const getImports = (language) => language === "javascript"
-  ? `const { authRoutes } = require("./auth");`
-  : `import { authRoutes } from "./auth";`;
+export const getImports = (language) =>
+  language === "javascript"
+    ? `const { authRoutes } = require("./auth");`
+    : `import { authRoutes } from "./auth";`;
 
 export const middleware = `router.use("/auth", authRoutes);`;
 

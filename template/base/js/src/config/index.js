@@ -1,5 +1,5 @@
-const { connectDB } = require("./db");
-const { ENV } = require("./env");
+const { connectDB } = require('./db');
+const { ENV } = require('./env');
 
 module.exports = {
   connectDB,

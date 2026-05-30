@@ -1,6 +1,9 @@
 const { Router } = require("express");
 const { register, login } = require("./auth.controller");
-const { methodNotAllowedHandler, validateRequest } = require("../../../middlewares");
+const {
+  methodNotAllowedHandler,
+  validateRequest,
+} = require("../../../middlewares");
 const { z } = require("zod");
 const { routeRegistry } = require("../../../docs");
 
@@ -23,46 +26,58 @@ const loginSchema = z
 
 // Register route docs for auto OpenAPI generation
 routeRegistry.register({
-  method: 'POST',
-  path: '/api/v1/auth/login',
+  method: "POST",
+  path: "/api/v1/auth/login",
   handler: login,
   docs: {
-    tags: ['Auth'],
-    summary: 'User login',
+    tags: ["Auth"],
+    summary: "User login",
     requestBody: {
       required: true,
       content: {
-        'application/json': {
-          schema: { type: 'object', properties: { username: { type: 'string' }, password: { type: 'string' } } },
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              username: { type: "string" },
+              password: { type: "string" },
+            },
+          },
         },
       },
     },
     responses: {
-      200: { description: 'Successful login' },
-      400: { description: 'Invalid request' },
-      401: { description: 'Unauthorized' },
+      200: { description: "Successful login" },
+      400: { description: "Invalid request" },
+      401: { description: "Unauthorized" },
     },
   },
 });
 
 routeRegistry.register({
-  method: 'POST',
-  path: '/api/v1/auth/register',
+  method: "POST",
+  path: "/api/v1/auth/register",
   handler: register,
   docs: {
-    tags: ['Auth'],
-    summary: 'Register new user',
+    tags: ["Auth"],
+    summary: "Register new user",
     requestBody: {
       required: true,
       content: {
-        'application/json': {
-          schema: { type: 'object', properties: { username: { type: 'string' }, password: { type: 'string' } } },
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              username: { type: "string" },
+              password: { type: "string" },
+            },
+          },
         },
       },
     },
     responses: {
-      201: { description: 'User created' },
-      400: { description: 'Invalid request' },
+      201: { description: "User created" },
+      400: { description: "Invalid request" },
     },
   },
 });

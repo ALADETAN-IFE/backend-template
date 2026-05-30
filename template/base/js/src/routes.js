@@ -11,7 +11,7 @@ router.get('/', rootHandler);
 
 // Swagger UI with auto-generated spec
 router.use('/api-docs', swaggerUi.serve, (_, res, next) => {
-  const spec = routeRegistry.generateOpenAPI("/*__PROJECT_NAME__*/", "1.0.0");
+  const spec = routeRegistry.generateOpenAPI('/*__PROJECT_NAME__*/', '1.0.0');
   swaggerUi.setup(spec)(_, res, next);
 });
 

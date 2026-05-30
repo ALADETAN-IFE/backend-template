@@ -1,8 +1,8 @@
-import { Router } from 'express';
-import { healthCheck } from './health.controller';
-import { methodNotAllowedHandler, validateRequest } from '@/middlewares';
-import { z } from 'zod';
-import { routeRegistry } from '@/docs';
+import { Router } from "express";
+import { healthCheck } from "./health.controller";
+import { methodNotAllowedHandler, validateRequest } from "@/middlewares";
+import { z } from "zod";
+import { routeRegistry } from "@/docs";
 
 const router = Router();
 const healthQuerySchema = z
@@ -19,7 +19,8 @@ routeRegistry.register({
   docs: {
     tags: ["Health"],
     summary: "Health check endpoint",
-    description: "Returns API health status and runtime metrics including uptime and memory usage.",
+    description:
+      "Returns API health status and runtime metrics including uptime and memory usage.",
     parameters: [
       {
         name: "verbose",

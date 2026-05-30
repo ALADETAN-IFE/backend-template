@@ -1,10 +1,10 @@
-const dotenv = require("dotenv");
+const dotenv = require('dotenv');
 dotenv.config();
 
 const colors = {
-  reset: "\x1b[0m",
-  red: "\x1b[31m",
-  bold: "\x1b[1m",
+  reset: '\x1b[0m',
+  red: '\x1b[31m',
+  bold: '\x1b[1m',
 };
 
 function format(tag, color) {
@@ -13,17 +13,17 @@ function format(tag, color) {
 
 const validateEnv = (env) => {
   const missing = Object.entries(env)
-    .filter(([, value]) => value === undefined || value === "")
+    .filter(([, value]) => value === undefined || value === '')
     .map(([key]) => key);
 
   if (missing.length > 0) {
     console.error(
-      format("env", colors.red),
-      `Missing required environment variables: ${missing.join(", ")}`,
+      format('env', colors.red),
+      `Missing required environment variables: ${missing.join(', ')}`
     );
     console.error(
-      format("env", colors.red),
-      "Please update your .env file and restart the server.",
+      format('env', colors.red),
+      'Please update your .env file and restart the server.'
     );
     process.exit(1);
   }

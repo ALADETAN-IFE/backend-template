@@ -16,7 +16,7 @@ export const generateReadme = (config, serviceName = null) => {
       : 4001 +
         services.filter(
           (service, serviceIndex) =>
-            service !== "gateway" && serviceIndex < index,
+            service !== "gateway" && serviceIndex < index
         ).length;
 
   let readme = `# ${serviceName || sanitizedName}\n\n`;
@@ -41,7 +41,11 @@ export const generateReadme = (config, serviceName = null) => {
         .split("-")
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(" ");
-      readme += `  - ${pretty} (port ${getPort(servicesList, service, index)})\n`;
+      readme += `  - ${pretty} (port ${getPort(
+        servicesList,
+        service,
+        index
+      )})\n`;
     });
     readme += `\n`;
   } else {
@@ -127,7 +131,9 @@ export const generateReadme = (config, serviceName = null) => {
   }
 
   if (auth) {
-    readme += `4. Configure your MongoDB connection and JWT secret in the \`.env\` file${isMicroservice ? "s" : ""}\n\n`;
+    readme += `4. Configure your MongoDB connection and JWT secret in the \`.env\` file${
+      isMicroservice ? "s" : ""
+    }\n\n`;
   }
 
   readme += `## Running the Application\n\n`;
@@ -210,7 +216,7 @@ export const generateReadme = (config, serviceName = null) => {
       const authPort = getPort(
         servicesList,
         "auth-service",
-        servicesList.indexOf("auth-service"),
+        servicesList.indexOf("auth-service")
       );
       readme += `# Auth requests (through gateway)\n`;
       readme += `curl -X POST http://localhost:4000/api/v1/auth/register \\\n+  -H "Content-Type: application/json" \\\n+  -d '{"username":"testuser","password":"password123"}'\n\n`;
@@ -258,7 +264,9 @@ export const generateReadme = (config, serviceName = null) => {
     servicesList.forEach((service) => {
       readme += `│   ├── ${service}/\n`;
     });
-    readme += `├── ${mode === "docker" ? "docker-compose.yml" : "pm2.config.js"}\n`;
+    readme += `├── ${
+      mode === "docker" ? "docker-compose.yml" : "pm2.config.js"
+    }\n`;
     readme += `├── .husky/             # Git hooks\n`;
     readme += `└── package.json        # Root package.json\n`;
   } else {

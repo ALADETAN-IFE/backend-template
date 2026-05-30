@@ -1,4 +1,4 @@
-const healthRoutes = require("./health.route");
+const healthRoutes = require('./health.route');
 
 module.exports = {
   healthRoutes,

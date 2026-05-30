@@ -22,7 +22,7 @@ const userSchema = new Schema<IUser>(
       required: true,
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 export const UserModel = model<IUser>("User", userSchema);

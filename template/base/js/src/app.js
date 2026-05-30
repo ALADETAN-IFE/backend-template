@@ -1,6 +1,6 @@
-const express = require("express");
-const router = require("./routes");
-const { errorHandler, observabilityMiddleware } = require("./middlewares");
+const express = require('express');
+const router = require('./routes');
+const { errorHandler, observabilityMiddleware } = require('./middlewares');
 /*__IMPORTS__*/
 
 const app = express();

@@ -9,14 +9,14 @@ const app = express();
 app.get("/", (_req: Request, res: Response) => {
   logger.info("Gateway", "Root endpoint accessed");
 
-  res.json({ 
-    status: "ok", 
+  res.json({
+    status: "ok",
     service: "API Gateway",
     version: "1.0.0",
     endpoints: {
       health: "/health",
-      healthService: "/api/v1/health"
-    }
+      healthService: "/api/v1/health",
+    },
   });
 });
 

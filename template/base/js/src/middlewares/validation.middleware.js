@@ -1,5 +1,5 @@
-const { ZodError } = require("zod");
-const { BadRequestError } = require("../utils");
+const { ZodError } = require('zod');
+const { BadRequestError } = require('../utils');
 
 const validateRequest = (schemas = {}) => {
   return (req, _, next) => {
@@ -20,9 +20,13 @@ const validateRequest = (schemas = {}) => {
     } catch (error) {
       if (error instanceof ZodError) {
         const issues = error.issues
-          .map((issue) => `${issue.path.join(".") || "request"}: ${issue.message}`)
-          .join("; ");
-        return next(new BadRequestError(`Request validation failed - ${issues}`));
+          .map(
+            (issue) => `${issue.path.join('.') || 'request'}: ${issue.message}`
+          )
+          .join('; ');
+        return next(
+          new BadRequestError(`Request validation failed - ${issues}`)
+        );
       }
 
       return next(error);

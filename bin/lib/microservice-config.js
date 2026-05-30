@@ -12,38 +12,41 @@ export const generateDockerCompose = (target, allServices, projectname) => {
   // Build environment variables map for all services
   const allServicePorts = allServices.map((service, index) => {
     const isGateway = service === "gateway";
-    const port = isGateway ? 4000 : 4001 + allServices.filter((s, i) => s !== "gateway" && i < index).length;
+    const port = isGateway
+      ? 4000
+      : 4001 +
+        allServices.filter((s, i) => s !== "gateway" && i < index).length;
     const envVarName = `${service.toUpperCase().replace(/-/g, "_")}_PORT`;
     return { service, port, envVarName };
   });
 
   for (const serviceName of allServices) {
     // Gateway runs on 4000, other services start from 4001
-    const serviceInfo = allServicePorts.find(s => s.service === serviceName);
+    const serviceInfo = allServicePorts.find((s) => s.service === serviceName);
     const port = serviceInfo.port;
     const envVarName = serviceInfo.envVarName;
-    
+
     // Build environment variables array - include all service ports
     const environmentVars = [
       `NODE_ENV=\${NODE_ENV:-development}`,
-      ...allServicePorts.map(s => `${s.envVarName}=\${${s.envVarName}:-${s.port}}`)
+      ...allServicePorts.map(
+        (s) => `${s.envVarName}=\${${s.envVarName}:-${s.port}}`
+      ),
     ];
-    
+
     dockerCompose.services[serviceName] = {
       build: {
         context: `./services/${serviceName}`,
-        dockerfile: "Dockerfile"
+        dockerfile: "Dockerfile",
       },
       image: `${serviceName}:latest`,
       container_name: projectname + "_" + serviceName,
-      ports: [
-        `\${${envVarName}:-${port}}:\${${envVarName}:-${port}}`,
-      ],
+      ports: [`\${${envVarName}:-${port}}:\${${envVarName}:-${port}}`],
       environment: environmentVars,
       volumes: [
         `./services/${serviceName}:/app`,
         `./shared:/app/shared`,
-        `/app/node_modules`
+        `/app/node_modules`,
       ],
     };
   }
@@ -62,19 +65,18 @@ export const generateDockerCompose = (target, allServices, projectname) => {
             `    container_name: ${config.container_name}\n` +
             `    ports:\n      - "${config.ports[0]}"\n` +
             `    environment:\n` +
-            config.environment.map((e) => `      - ${e}`).join("\n") + "\n" +
+            config.environment.map((e) => `      - ${e}`).join("\n") +
+            "\n" +
             `    volumes:\n` +
             config.volumes.map((v) => `      - ${v}`).join("\n")
         )
-        .join("\n")
-      +
+        .join("\n") +
       "\n\n" +
       // Add x-watch section to help file watchers map service src and shared folders
       `x-watch:\n` +
       allServices
         .map(
-          (name) =>
-            `  ${name}:\n    - ./services/${name}/src\n    - ./shared`
+          (name) => `  ${name}:\n    - ./services/${name}/src\n    - ./shared`
         )
         .join("\n")
   );
@@ -84,8 +86,11 @@ export const generatePm2Config = (target, allServices) => {
   const pm2Config = {
     apps: allServices.map((serviceName, index) => {
       const isGateway = serviceName === "gateway";
-      const port = isGateway ? 4000 : 4001 + allServices.filter((s, i) => s !== "gateway" && i < index).length;
-      
+      const port = isGateway
+        ? 4000
+        : 4001 +
+          allServices.filter((s, i) => s !== "gateway" && i < index).length;
+
       return {
         name: serviceName,
         script: `./services/${serviceName}/src/server.ts`,
@@ -116,7 +121,7 @@ export const copyDockerfile = (target, servicesToCreate) => {
     __dirname,
     "../../template/microservice/docker/Dockerfile"
   );
-  
+
   for (const serviceName of servicesToCreate) {
     const serviceDockerfile = path.join(
       target,
@@ -135,7 +140,7 @@ export const copyDockerignore = (target, servicesToCreate) => {
     __dirname,
     "../../template/microservice/docker/.dockerignore"
   );
-  
+
   for (const serviceName of servicesToCreate) {
     const serviceDockerignore = path.join(
       target,

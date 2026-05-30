@@ -1,0 +1,29 @@
+import { describe, it, expect, beforeEach } from "vitest";
+import { createRequire } from "module";
+const requireC = createRequire(import.meta.url);
+const { routeRegistry } = requireC(
+  "./template/base/js/src/docs/route-registry.js"
+);
+
+describe("routeRegistry", () => {
+  beforeEach(() => {
+    // Clear registry
+    routeRegistry.routes = [];
+  });
+
+  it("registers a route and generates OpenAPI paths", () => {
+    routeRegistry.register({
+      method: "GET",
+      path: "/test",
+      handler: () => {},
+      docs: {
+        summary: "test route",
+        responses: { 200: { description: "ok" } },
+      },
+    });
+
+    const spec = routeRegistry.generateOpenAPI("MyAPI", "1.0.0");
+    expect(spec.paths["/test"]).toBeDefined();
+    expect(spec.paths["/test"].get.summary).toBe("test route");
+  });
+});

@@ -2,7 +2,7 @@ name: Publish to npm
 
 on:
   push:
-    tags: 
+    tags:
       - "v*"
 
 permissions:
@@ -14,21 +14,21 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     environment: npm
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22.x'
-        registry-url: 'https://registry.npmjs.org'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          registry-url: "https://registry.npmjs.org"
 
-    - name: Install dependencies
-      run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-    - name: Publish to npm
-      run: npm publish --access public --provenance --loglevel verbose
-      env:
-        NODE_OPTIONS: --enable-source-maps
+      - name: Publish to npm
+        run: npm publish --access public --provenance --loglevel verbose
+        env:
+          NODE_OPTIONS: --enable-source-maps

@@ -1,12 +1,12 @@
-const { ENV } = require("../config/env");
+const { ENV } = require('../config/env');
 // ANSI color codes for terminal output
 const colors = {
-  reset: "\x1b[0m",
-  blue: "\x1b[34m",
-  cyan: "\x1b[36m",
-  yellow: "\x1b[33m",
-  red: "\x1b[31m",
-  bold: "\x1b[1m",
+  reset: '\x1b[0m',
+  blue: '\x1b[34m',
+  cyan: '\x1b[36m',
+  yellow: '\x1b[33m',
+  red: '\x1b[31m',
+  bold: '\x1b[1m',
 };
 
 function format(tag, color) {
@@ -14,42 +14,42 @@ function format(tag, color) {
 }
 
 function getEnvironment() {
-  return ENV.NODE_ENV === "development" || ENV.NODE_ENV === "staging"
-    ? "development"
+  return ENV.NODE_ENV === 'development' || ENV.NODE_ENV === 'staging'
+    ? 'development'
     : ENV.NODE_ENV;
 }
 
 function shouldLog(level) {
-  if (level === "log") {
-    return getEnvironment() === "development";
+  if (level === 'log') {
+    return getEnvironment() === 'development';
   }
 
   return true;
 }
 
 console.log(
-  format("logger", colors.blue),
-  `Logger initialized for ${getEnvironment()} environment.`,
+  format('logger', colors.blue),
+  `Logger initialized for ${getEnvironment()} environment.`
 );
 
 const logger = {
   log(tag, ...args) {
-    if (!shouldLog("log")) return;
+    if (!shouldLog('log')) return;
     console.log(format(tag, colors.blue), ...args);
   },
 
   info(tag, ...args) {
-    if (!shouldLog("info")) return;
+    if (!shouldLog('info')) return;
     console.info(format(tag, colors.cyan), ...args);
   },
 
   warn(tag, ...args) {
-    if (!shouldLog("warn")) return;
+    if (!shouldLog('warn')) return;
     console.warn(format(tag, colors.yellow), ...args);
   },
 
   error(tag, ...args) {
-    if (!shouldLog("error")) return;
+    if (!shouldLog('error')) return;
     console.error(format(tag, colors.red), ...args);
   },
 };

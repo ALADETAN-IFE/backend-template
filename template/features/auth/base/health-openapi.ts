@@ -3,7 +3,8 @@ export const healthOpenApiWithMongo = {
   get: {
     tags: ["Health"],
     summary: "Health check with MongoDB status",
-    description: "Returns API health, runtime metrics, and MongoDB connection status.",
+    description:
+      "Returns API health, runtime metrics, and MongoDB connection status.",
     parameters: [
       {
         name: "verbose",
@@ -27,7 +28,10 @@ export const healthOpenApiWithMongo = {
                 services: {
                   type: "object",
                   properties: {
-                    mongodb: { type: "string", enum: ["connected", "disconnected"] },
+                    mongodb: {
+                      type: "string",
+                      enum: ["connected", "disconnected"],
+                    },
                     memory: {
                       type: "object",
                       properties: {

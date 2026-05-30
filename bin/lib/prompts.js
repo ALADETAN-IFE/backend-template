@@ -5,8 +5,8 @@ import path from "path";
 
 export const getProjectConfig = async () => {
   // Check if running in CI or non-interactive mode
-  const isCI = process.env.CI === 'true' || !process.stdin.isTTY;
-  
+  const isCI = process.env.CI === "true" || !process.stdin.isTTY;
+
   // Check if we're in an existing microservice project
   const isInMicroserviceProject = fs.existsSync(
     path.join(process.cwd(), "services")
@@ -14,24 +14,25 @@ export const getProjectConfig = async () => {
 
   // Parse command line arguments
   const args = process.argv.slice(2);
-  
+
   // Separate project name parts from project type
   // Look for "microservice", "monolith", "micro", or "mono" in args
   let cliName = null;
   let cliProjectType = null;
-  
+
   const projectTypeKeywords = ["microservice", "monolith", "micro", "mono"];
-  const projectTypeIndex = args.findIndex(arg => 
+  const projectTypeIndex = args.findIndex((arg) =>
     projectTypeKeywords.includes(arg.toLowerCase())
   );
-  
+
   if (projectTypeIndex !== -1) {
     // Everything before the type keyword is the project name
     cliName = args.slice(0, projectTypeIndex).join("-");
     const typeArg = args[projectTypeIndex].toLowerCase();
-    cliProjectType = typeArg === "micro" || typeArg === "microservice" 
-      ? "microservice" 
-      : "monolith";
+    cliProjectType =
+      typeArg === "micro" || typeArg === "microservice"
+        ? "microservice"
+        : "monolith";
   } else if (args.length > 0) {
     // If no type keyword found, treat all args as project name
     cliName = args.join("-");
@@ -167,7 +168,7 @@ export const getProjectConfig = async () => {
         console.log(pc.yellow("\n❌ Operation cancelled by user."));
         process.exit(0);
       },
-    },
+    }
   );
 
   // Handle cancelled prompts (user pressed Ctrl+C or closed the prompt)
@@ -176,7 +177,7 @@ export const getProjectConfig = async () => {
     console.log(pc.yellow("\n❌ Operation cancelled by user."));
     process.exit(0);
   }
-  
+
   // Check if critical fields are missing (indicates cancellation mid-prompt)
   if (!isInMicroserviceProject && !isCI) {
     // For new projects, we need language and projectType
@@ -185,9 +186,14 @@ export const getProjectConfig = async () => {
       process.exit(0);
     }
   }
-  
+
   // If the response is empty but we expected prompts, something went wrong
-  if (Object.keys(res).length === 0 && !isInMicroserviceProject && !hasCliArgs && !isCI) {
+  if (
+    Object.keys(res).length === 0 &&
+    !isInMicroserviceProject &&
+    !hasCliArgs &&
+    !isCI
+  ) {
     console.log(pc.red("\n❌ No inputs received. Please try again."));
     process.exit(1);
   }
@@ -212,7 +218,7 @@ export const getProjectConfig = async () => {
       res.projectType = res.projectType || "monolith";
     }
   }
-  
+
   // Ensure we have a project name (fallback if somehow missed)
   if (!res.name && !isInMicroserviceProject) {
     res.name = "my-backend";
@@ -234,7 +240,9 @@ export const getProjectConfig = async () => {
       ? "docker"
       : "nodocker";
 
-    console.log(pc.cyan(`\n📁 Detected existing microservice project: ${sanitizedName}`));
+    console.log(
+      pc.cyan(`\n📁 Detected existing microservice project: ${sanitizedName}`)
+    );
     console.log(pc.dim(`Mode: ${mode}\n`));
   } else {
     sanitizedName = res.name.replace(/\s+/g, "-");

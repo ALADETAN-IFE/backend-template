@@ -1,26 +1,29 @@
 # Description
+
 <!--- Describe your changes in detail -->
+
 This PR ...
 
 # Changes Proposed
 
 ## What issue does this PR address?
+
 <!--- Link to the issue or describe the problem -->
 
-
 ## What did you do?
+
 <!--- Describe your implementation -->
 
-
 ## How can this be tested?
+
 <!--- Provide steps to test your changes -->
 
-
 ## Screenshots (if appropriate)
+
 <!--- Postman results, terminal output, etc. -->
 
-
 ## Types of changes
+
 <!--- What types of changes does your code introduce? Put an x in all the boxes that apply: -->
 
 - [ ] Bug fix (non-breaking change which fixes an issue)
@@ -31,6 +34,7 @@ This PR ...
 - [ ] Refactor (code restructuring without changing functionality)
 
 # Check List
+
 <!--- Go over all the following points, and put an x in all the boxes that apply. -->
 <!--- If you're unsure about any of these, don't hesitate to ask. We're here to help! -->
 

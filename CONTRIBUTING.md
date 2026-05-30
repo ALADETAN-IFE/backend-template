@@ -24,6 +24,7 @@ We welcome all kinds of contributions, including bug reports, feature requests, 
 ## Getting Started
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/ALADETAN-IFE/backend-template.git
    ```
@@ -32,13 +33,12 @@ We welcome all kinds of contributions, including bug reports, feature requests, 
    ```bash
    cd backend-template
    ```
-   
 3. Install dependencies:
    ```bash
    npm install
    ```
-   
 4. Link the CLI locally for testing:
+
    ```bash
    npm link
    ```
@@ -92,6 +92,7 @@ logger.error("PAYMENT", err);
 ## Development Workflow
 
 1. Create a new branch for your work:
+
    ```bash
    git checkout -b feat/your-feature-name
    ```
@@ -99,11 +100,12 @@ logger.error("PAYMENT", err);
 2. Make your changes
 
 3. Test your changes:
+
    ```bash
    # Test CLI generation
    ifecodes-template test-project mono
    ifecodes-template test-microservice micro
-   
+
    # Test the generated projects
    cd test-project
    npm install
@@ -162,7 +164,7 @@ type: commit message
 - `feat!/` — breaking change feature
 - `fix` — bug fix
 - `refactor` — code restructuring
-- `chore` — routine tasks 
+- `chore` — routine tasks
 - `docs` — documentation changes
 
 ### Examples
@@ -189,6 +191,7 @@ Keep messages concise and descriptive.
 ## Submitting Pull Requests
 
 1. Make sure your branch is up to date with the `main` branch:
+
    ```bash
    git checkout main
    git pull origin main
@@ -197,6 +200,7 @@ Keep messages concise and descriptive.
    ```
 
 2. Run tests before submitting (if applicable):
+
    ```bash
    npm test
    ```
@@ -204,6 +208,7 @@ Keep messages concise and descriptive.
 3. Open a pull request to the upstream repository
 
 4. In your PR description, include:
+
    - **What you changed** - List the modifications
    - **Why you changed it** - Explain the reasoning
    - **How to test it** - Steps to verify the changes
