@@ -129,7 +129,13 @@ export const setupService = async (
       fs.rmSync(middlewaresPath, { recursive: true });
   } else {
     // Regular service setup (existing code)
-    // Add Zod and Swagger if validation is enabled
+    // Add Swagger UI as runtime dependency (used by routes for /api-docs)
+    deps.push("swagger-ui-express");
+    if (res.language === "typescript") {
+      devDeps.push("@types/swagger-ui-express");
+    }
+
+    // Add Zod only when validation is enabled
     if (res.validation) {
       deps.push("zod");
     }
