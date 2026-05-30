@@ -11,7 +11,7 @@
     "template"
   ],
   "scripts": {
-    "lint": "eslint . --ext .js,.ts --ignore-pattern 'template/**'",
+    "lint": "eslint .",
     "format": "prettier --write ."
   },
   "repository": {
