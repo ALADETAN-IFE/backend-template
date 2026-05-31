@@ -479,6 +479,14 @@ export const setupService = async (
       fs.writeFileSync(rootMiddlewarePath, rootContent);
     }
 
+    // Replace project name placeholder in routes (used by runtime OpenAPI title)
+    const routesFilePath = path.join(serviceRoot, `src/routes.${ext}`);
+    if (fs.existsSync(routesFilePath)) {
+      let routesContent = fs.readFileSync(routesFilePath, "utf8");
+      routesContent = routesContent.replace(/\/\*__PROJECT_NAME__\*\//g, serviceName || res.sanitizedName);
+      fs.writeFileSync(routesFilePath, routesContent);
+    }
+
     // Update v1 index file if needed
     if (v1Imports.length || v1Routes.length) {
       const v1IndexPath = path.join(serviceRoot, `src/modules/v1/index.${ext}`);
