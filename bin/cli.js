@@ -125,7 +125,7 @@ This PR ...
 
   fs.writeFileSync(
     path.join(githubDir, "pull_request_template.md"),
-    prTemplateContent
+    prTemplateContent,
   );
 }
 
@@ -319,22 +319,22 @@ if (!isInMicroserviceProject && config.projectType === "microservice") {
   if (isExistingProject) {
     console.error(
       `\n${pc.red("❌ Error:")} Project ${pc.bold(
-        sanitizedName
-      )} already exists!`
+        sanitizedName,
+      )} already exists!`,
     );
     process.exit(1);
   }
   console.log(
     `\n${pc.cyan("🏗️  Creating microservices:")} ${pc.bold(
-      servicesToCreate.join(", ")
-    )}...\n`
+      servicesToCreate.join(", "),
+    )}...\n`,
   );
 } else if (!isInMicroserviceProject && config.projectType === "monolith") {
   if (isExistingProject) {
     console.error(
       `\n${pc.red("❌ Error:")} Project ${pc.bold(
-        sanitizedName
-      )} already exists!`
+        sanitizedName,
+      )} already exists!`,
     );
     process.exit(1);
   }
@@ -355,7 +355,7 @@ if (!isInMicroserviceProject && config.projectType === "microservice") {
       if (ext === "ts") {
         indexContent = indexContent.replace(
           'export { connectDB } from "./db";\n',
-          ""
+          "",
         );
         // also remove any trailing references like `connectDB,` in exported objects
         indexContent = indexContent.replace(/connectDB,?/g, "");
@@ -371,7 +371,7 @@ if (!isInMicroserviceProject && config.projectType === "microservice") {
   // No TypeScript-to-JavaScript conversion — templates include language-specific variants
 } else if (isInMicroserviceProject) {
   console.log(
-    `\n${pc.cyan("🏗️  Adding service:")} ${pc.bold(servicesToCreate[0])}...\n`
+    `\n${pc.cyan("🏗️  Adding service:")} ${pc.bold(servicesToCreate[0])}...\n`,
   );
 }
 
@@ -382,7 +382,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
     const sharedDir = path.join(target, "shared");
     if (!fs.existsSync(sharedDir)) {
       console.log(
-        `\n${pc.cyan("📦 Creating shared folder for config and utils...")}`
+        `\n${pc.cyan("📦 Creating shared folder for config and utils...")}`,
       );
       fs.mkdirSync(sharedDir, { recursive: true });
 
@@ -407,15 +407,15 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
             // Remove various export/import patterns referencing connectDB
             idx = idx.replace(
               /export\s*\{\s*connectDB\s*\}\s*from\s*["']\.\/db["'];?/g,
-              ""
+              "",
             );
             idx = idx.replace(
               /const\s*\{\s*connectDB\s*\}\s*=\s*require\(["']\.\/db["']\);?/g,
-              ""
+              "",
             );
             idx = idx.replace(
               /import\s*\{\s*connectDB\s*\}\s*from\s*["']\.\/db["'];?/g,
-              ""
+              "",
             );
             idx = idx.replace(/\bconnectDB,?\b/g, "");
             idx = idx.replace(/\n{3,}/g, "\n\n");
@@ -449,7 +449,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
         // Replace PORT with service-specific ports
         envContent = envContent.replace(
           "  PORT: process.env.PORT!,",
-          portEnvVars
+          portEnvVars,
         );
 
         // Add ALLOWED_ORIGIN if CORS is selected
@@ -457,7 +457,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
           const assertion = config.language === "javascript" ? "" : "!";
           envContent = envContent.replace(
             "/*__ALLOWED_ORIGIN__*/",
-            `ALLOWED_ORIGIN: process.env.ALLOWED_ORIGIN${assertion},`
+            `ALLOWED_ORIGIN: process.env.ALLOWED_ORIGIN${assertion},`,
           );
         } else {
           envContent = envContent.replace("/*__ALLOWED_ORIGIN__*/", "");
@@ -468,11 +468,11 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
           const assertion = config.language === "javascript" ? "" : "!";
           envContent = envContent.replace(
             "/*__MONGO_URI__*/",
-            `MONGO_URI: process.env.MONGO_URI${assertion},`
+            `MONGO_URI: process.env.MONGO_URI${assertion},`,
           );
           envContent = envContent.replace(
             "/*__JWT_SECRET__*/",
-            `JWT_SECRET: process.env.JWT_SECRET${assertion},`
+            `JWT_SECRET: process.env.JWT_SECRET${assertion},`,
           );
         } else {
           envContent = envContent.replace("/*__MONGO_URI__*/", "");
@@ -490,7 +490,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
           if (ext === "ts") {
             indexContent = indexContent.replace(
               'export { connectDB } from "./db";\n',
-              ""
+              "",
             );
           }
           indexContent = indexContent
@@ -504,13 +504,13 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
       const sharedLoggerPath = path.join(sharedUtilsDir, `logger.${ext}`);
       if (fs.existsSync(sharedLoggerPath)) {
         console.log(
-          `\n${pc.cyan("🔧 Updating shared logger to use shared config...")}`
+          `\n${pc.cyan("🔧 Updating shared logger to use shared config...")}`,
         );
         let loggerContent = fs.readFileSync(sharedLoggerPath, "utf8");
         // Replace imports like: from '@/config'; or from "@/config" with relative import to shared config
         loggerContent = loggerContent.replace(
           /from\s+["']@\/config["'];?/g,
-          "from '../config';"
+          "from '../config';",
         );
         fs.writeFileSync(sharedLoggerPath, loggerContent);
       }
@@ -527,7 +527,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
       };
       fs.writeFileSync(
         path.join(sharedDir, "package.json"),
-        JSON.stringify(sharedPackageJson, null, 2)
+        JSON.stringify(sharedPackageJson, null, 2),
       );
     }
   }
@@ -574,7 +574,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
           fs.rmSync(conflictPath, { recursive: true, force: true });
         } catch (e) {
           console.error(
-            pc.red(`Failed to remove existing path: ${conflictPath}`)
+            pc.red(`Failed to remove existing path: ${conflictPath}`),
           );
           process.exit(1);
         }
@@ -613,7 +613,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
   // Include services we're about to create so port computation and gateway routing
   // are aware of newly added services when setting up files.
   const allServices = Array.from(
-    new Set([...existingServices, ...servicesToSetup])
+    new Set([...existingServices, ...servicesToSetup]),
   );
 
   // Step 1: Setup all service files first (without installing dependencies)
@@ -631,7 +631,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
       serviceRoot,
       shouldIncludeAuth,
       allServices,
-      true // Skip install for now
+      true, // Skip install for now
     );
     serviceConfigs.push({
       serviceName,
@@ -648,7 +648,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
       ? fs
           .readdirSync(servicesDirPath)
           .filter((f) =>
-            fs.statSync(path.join(servicesDirPath, f)).isDirectory()
+            fs.statSync(path.join(servicesDirPath, f)).isDirectory(),
           )
       : [];
 
@@ -729,7 +729,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
     }
     fs.writeFileSync(
       rootPackageJsonPath,
-      JSON.stringify(rootPackageJson, null, 2) + "\n"
+      JSON.stringify(rootPackageJson, null, 2) + "\n",
     );
   }
 
@@ -782,7 +782,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
       const svcs = fs
         .readdirSync(servicesDirPath)
         .filter((f) =>
-          fs.statSync(path.join(servicesDirPath, f)).isDirectory()
+          fs.statSync(path.join(servicesDirPath, f)).isDirectory(),
         );
       for (const svc of svcs) {
         for (const f of [...rootFiles, "eslint.config.js"]) {
@@ -861,7 +861,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
     };
     fs.writeFileSync(
       path.join(target, "tsconfig.json"),
-      JSON.stringify(rootTsConfigContent, null, 2) + "\n"
+      JSON.stringify(rootTsConfigContent, null, 2) + "\n",
     );
   }
 
@@ -890,7 +890,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
         // Remove any existing *_PORT lines to avoid duplication
         envContent = envContent.replace(
           /^[ \t]*[A-Z0-9_]+_PORT:\s*process\.env\.[A-Z0-9_]+!?\,?\s*$/gim,
-          ""
+          "",
         );
         // Normalize multiple consecutive blank lines
         envContent = envContent.replace(/\n{2,}/g, "\n\n");
@@ -901,7 +901,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
         if (envContent.includes("/*__PORTS__*/")) {
           envContent = envContent.replace(
             "/*__PORTS__*/",
-            "/*__PORTS__*/\n" + portEnvVars
+            "/*__PORTS__*/\n" + portEnvVars,
           );
         } else {
           // Fallback: find the opening brace of the exported ENV object and insert after it
@@ -935,7 +935,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
           gatewayRoot,
           config.auth,
           allServices,
-          true
+          true,
         );
       }
 
@@ -946,7 +946,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
           ? fs
               .readdirSync(servicesDirPath)
               .filter((f) =>
-                fs.statSync(path.join(servicesDirPath, f)).isDirectory()
+                fs.statSync(path.join(servicesDirPath, f)).isDirectory(),
               )
           : allServices;
 
@@ -1004,7 +1004,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
           if (nodeEnvRegex.test(exampleContent)) {
             exampleContent = exampleContent.replace(
               nodeEnvRegex,
-              (m) => `${m}\n\n${portsBlock}\n`
+              (m) => `${m}\n\n${portsBlock}\n`,
             );
           } else {
             // Prepend header and ports
@@ -1017,13 +1017,13 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
           // Inform the user about the new ports and remind them to update their runtime .env if needed
           try {
             console.log(
-              pc.cyan("\n🔧 Updated .env.example with service port entries:\n")
+              pc.cyan("\n🔧 Updated .env.example with service port entries:\n"),
             );
             console.log(pc.green(portsBlock));
             console.log(
               pc.dim(
-                "If you keep a runtime .env with custom overrides, do NOT overwrite it.\nPlease copy any new *_PORT entries from .env.example into .env as appropriate."
-              )
+                "If you keep a runtime .env with custom overrides, do NOT overwrite it.\nPlease copy any new *_PORT entries from .env.example into .env as appropriate.",
+              ),
             );
           } catch (e) {
             // non-fatal if logging fails
@@ -1046,7 +1046,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
 
   for (const { serviceName, serviceRoot, deps, devDeps } of serviceConfigs) {
     console.log(
-      pc.cyan(`\n📦 Installing dependencies for ${serviceName}...\n`)
+      pc.cyan(`\n📦 Installing dependencies for ${serviceName}...\n`),
     );
 
     try {
@@ -1066,7 +1066,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
     } catch (error) {
       allInstallsSucceeded = false;
       console.error(
-        pc.red(`\n❌ Failed to install dependencies for ${serviceName}`)
+        pc.red(`\n❌ Failed to install dependencies for ${serviceName}`),
       );
       console.error(pc.dim(`\nYou can install them later by running:`));
       console.error(pc.cyan(`   cd services/${serviceName} && npm install\n`));
@@ -1076,39 +1076,8 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
   // Store for later use
   config.allInstallsSucceeded = allInstallsSucceeded;
 } else {
-  const result = await setupService(config, null, target, true);
-  config.installSucceeded = result.installSucceeded;
-
-  try {
-    if (result.deps && result.deps.length) {
-      execSync(`npm install ${result.deps.join(" ")}`, {
-        cwd: target,
-        stdio: "inherit",
-      });
-    }
-    if (result.devDeps && result.devDeps.length) {
-      execSync(`npm install -D ${result.devDeps.join(" ")}`, {
-        cwd: target,
-        stdio: "inherit",
-      });
-    }
-    execSync("npm install", { cwd: target, stdio: "inherit" });
-  } catch (error) {
-    console.error(pc.red("\n❌ Failed to install monolith dependencies"));
-    console.error(pc.dim(`\nYou can install them later by running:`));
-    console.error(pc.cyan(`   cd ${target} && npm install\n`));
-  }
-
-  // Safety net: ensure eslint.config.js exists in generated monolith projects
-  const templateEslintConfig = path.join(base, "eslint.config.js");
-  const generatedEslintConfig = path.join(target, "eslint.config.js");
-  if (
-    config.projectType === "monolith" &&
-    fs.existsSync(templateEslintConfig) &&
-    !fs.existsSync(generatedEslintConfig)
-  ) {
-    fs.copyFileSync(templateEslintConfig, generatedEslintConfig);
-  }
+  config.monolithSetupResult = await setupService(config, null, target, true);
+  config.installSucceeded = config.monolithSetupResult.installSucceeded;
 }
 
 // Generate README.md for monolith (microservices already done above)
@@ -1140,6 +1109,53 @@ if (!isInMicroserviceProject && config.projectType === "monolith") {
   }
 }
 
+// Install monolith dependencies last, after all files have been generated.
+if (!isInMicroserviceProject && config.projectType === "monolith") {
+  const result = config.monolithSetupResult;
+
+  try {
+    if (result.deps && result.deps.length) {
+      execSync(`npm install ${result.deps.join(" ")}`, {
+        cwd: target,
+        stdio: "inherit",
+      });
+    }
+    if (result.devDeps && result.devDeps.length) {
+      execSync(`npm install -D ${result.devDeps.join(" ")}`, {
+        cwd: target,
+        stdio: "inherit",
+      });
+    }
+    execSync("npm install", { cwd: target, stdio: "inherit" });
+  } catch (error) {
+    console.error(pc.red("\n❌ Failed to install monolith dependencies"));
+    console.error(pc.dim(`\nYou can install them later by running:`));
+    console.error(pc.cyan(`   cd ${target} && npm install\n`));
+
+    if (
+      error?.code === "ENOSPC" ||
+      /no space left on device/i.test(error?.message || "")
+    ) {
+      console.error(
+        pc.red(
+          "\n🛑 Generation stopped because the disk is full. Free up space and run the generator again.\n",
+        ),
+      );
+      process.exit(1);
+    }
+  }
+
+  // Safety net: ensure eslint.config.js exists in generated monolith projects
+  const templateEslintConfig = path.join(base, "eslint.config.js");
+  const generatedEslintConfig = path.join(target, "eslint.config.js");
+  if (
+    fs.existsSync(templateEslintConfig) &&
+    !fs.existsSync(generatedEslintConfig)
+  ) {
+    fs.copyFileSync(templateEslintConfig, generatedEslintConfig);
+  }
+}
+
 // Initialize git and Husky
 if (!isInMicroserviceProject) {
   execSync("git init", { cwd: target, stdio: "inherit" });
@@ -1162,13 +1178,13 @@ if (!isInMicroserviceProject) {
       } catch (formatError) {
         console.warn(
           pc.yellow(
-            "⚠️  Warning: Code formatting failed. You can run it manually later with: npm run format\n"
-          )
+            "⚠️  Warning: Code formatting failed. You can run it manually later with: npm run format\n",
+          ),
         );
       }
     } else {
       console.log(
-        "\n⚠️  Husky setup skipped (run 'npm install && npm run prepare' after fixing service dependencies)\n"
+        "\n⚠️  Husky setup skipped (run 'npm install && npm run prepare' after fixing service dependencies)\n",
       );
     }
   } else if (config.projectType === "monolith") {
@@ -1180,15 +1196,15 @@ if (!isInMicroserviceProject) {
       } catch (error) {
         console.log(
           `\n${pc.yellow("⚠️  Husky setup failed")} ${pc.dim(
-            "(run 'npm run prepare' manually after fixing dependencies)"
-          )}\n`
+            "(run 'npm run prepare' manually after fixing dependencies)",
+          )}\n`,
         );
       }
     } else {
       console.log(
         `\n${pc.yellow("⚠️  Husky setup skipped")} ${pc.dim(
-          "(run 'npm install && npm run prepare' to set up git hooks)"
-        )}\n`
+          "(run 'npm install && npm run prepare' to set up git hooks)",
+        )}\n`,
       );
     }
   }
@@ -1216,12 +1232,14 @@ if (isInMicroserviceProject) {
   if (servicesToSetup.length > 0) {
     console.log(
       `\n${pc.green("✅ Service")} ${pc.bold(servicesToSetup[0])} ${pc.green(
-        "added successfully!"
-      )}`
+        "added successfully!",
+      )}`,
     );
   } else {
     console.log(
-      pc.yellow("\n⚠️  No new service was created (skipped by your selection).")
+      pc.yellow(
+        "\n⚠️  No new service was created (skipped by your selection).",
+      ),
     );
   }
   console.log(`\n${pc.cyan("📦 All services:")} ${allServices.join(", ")}`);
@@ -1230,7 +1248,7 @@ if (isInMicroserviceProject) {
 } else if (config.projectType === "microservice") {
   console.log(`\n${pc.green("✅ Microservice Backend created successfully!")}`);
   console.log(
-    `\n${pc.cyan("📦 Created services:")} ${servicesToCreate.join(", ")}`
+    `\n${pc.cyan("📦 Created services:")} ${servicesToCreate.join(", ")}`,
   );
   console.log(`\n${pc.blue("💡 Next steps:")}`);
   console.log(`   ${pc.dim("1.")} cd ${pc.bold(sanitizedName)}`);
@@ -1253,15 +1271,15 @@ try {
         // Remove various connectDB export/import patterns
         idxContent = idxContent.replace(
           /export\s*\{\s*connectDB\s*\}\s*from\s*["']\.\/db["'];?/g,
-          ""
+          "",
         );
         idxContent = idxContent.replace(
           /import\s*\{\s*connectDB\s*\}\s*from\s*["']\.\/db["'];?/g,
-          ""
+          "",
         );
         idxContent = idxContent.replace(
           /const\s*\{\s*connectDB\s*\}\s*=\s*require\(["']\.\/db["']\);?/g,
-          ""
+          "",
         );
         // Remove any remaining connectDB identifiers (commas/newlines)
         idxContent = idxContent.replace(/connectDB,?/g, "");
