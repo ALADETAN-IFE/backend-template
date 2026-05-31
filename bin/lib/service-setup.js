@@ -272,8 +272,9 @@ export const setupService = async (
           );
 
           // Remove any const <identifier> = z...; schema blocks (non-greedy)
+          // Be tolerant of CRLF (Windows) and LF line endings
           healthContent = healthContent.replace(
-            /const\s+\w+\s*=\s*z[\s\S]*?;\s*\n\n/gm,
+            /const\s+\w+\s*=\s*z[\s\S]*?;\s*(?:\r?\n){2,}/gm,
             "",
           );
 
@@ -398,7 +399,7 @@ export const setupService = async (
             "",
           );
           authContent = authContent.replace(
-            /const\s+\w+Schema\s*=\s*z[\s\S]*?;\s*\n\n/gm,
+            /const\s+\w+Schema\s*=\s*z[\s\S]*?;\s*(?:\r?\n){2,}/gm,
             "",
           );
           authContent = authContent.replace(
@@ -428,7 +429,7 @@ export const setupService = async (
           );
 
           authContent = authContent.replace(
-            /const\s+\w+Schema\s*=\s*z[\s\S]*?;\s*\n\n/gm,
+            /const\s+\w+Schema\s*=\s*z[\s\S]*?;\s*(?:\r?\n){2,}/gm,
             "",
           );
           authContent = authContent.replace(
