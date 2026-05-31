@@ -24,11 +24,13 @@ export const validateRequest = (schemas: RequestSchemas) => {
       }
 
       if (schemas.query) {
-        req.query = schemas.query.parse(req.query) as Request["query"];
+        const parsedQuery = schemas.query.parse(req.query) as Record<string, unknown>;
+        Object.assign(req.query as Record<string, unknown>, parsedQuery);
       }
 
       if (schemas.params) {
-        req.params = schemas.params.parse(req.params) as Request["params"];
+        const parsedParams = schemas.params.parse(req.params) as Record<string, unknown>;
+        Object.assign(req.params as Record<string, unknown>, parsedParams);
       }
 
       next();
