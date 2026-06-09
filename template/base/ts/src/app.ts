@@ -5,6 +5,9 @@ import { errorHandler, observabilityMiddleware } from "@/middlewares";
 
 const app = express();
 
+// Enable trust proxy for reverse proxy
+app.set("trust proxy", 1);
+
 // Parse JSON request bodies
 app.use(express.json());
 

@@ -50,7 +50,7 @@ class RouteRegistry {
     return this.routes;
   }
 
-  generateOpenAPI(projectName: string, version = "1.0.0"): Record<string, unknown> {
+  generateOpenAPI(projectName: string, version = "1.0.0", baseUrl: string,): Record<string, unknown> {
     const paths: Record<string, unknown> = {};
     const tags = new Set<string>();
 
@@ -61,11 +61,13 @@ class RouteRegistry {
 
     // Build paths from routes
     this.routes.forEach((route) => {
-      if (!paths[route.path]) {
-        paths[route.path] = {};
+      const openapiPath = route.path.replace(/:([A-Za-z0-9_]+)/g, "{$1}");
+
+      if (!paths[openapiPath]) {
+        paths[openapiPath] = {};
       }
 
-      const pathItem = paths[route.path] as Record<string, unknown>;
+      const pathItem = paths[openapiPath] as Record<string, unknown>;
       const method = route.method.toLowerCase();
 
       pathItem[method] = {
@@ -85,7 +87,7 @@ class RouteRegistry {
         version,
         description: "Auto-generated from route schemas.",
       },
-      servers: [{ url: "http://localhost:4000" }],
+      servers: [{ url: baseUrl }],
       tags: Array.from(tags).map((tag) => ({
         name: tag,
         description: `${tag} endpoints`,

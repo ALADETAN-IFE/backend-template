@@ -11,7 +11,7 @@ class RouteRegistry {
     return this.routes;
   }
 
-  generateOpenAPI(projectName, version = '1.0.0') {
+  generateOpenAPI(projectName, version = '1.0.0', baseUrl) {
     const paths = {};
     const tags = new Set();
 
@@ -46,7 +46,7 @@ class RouteRegistry {
         version,
         description: 'Auto-generated from route schemas.',
       },
-      servers: [{ url: 'http://localhost:4000' }],
+      servers: [{ url: baseUrl }],
       tags: Array.from(tags).map((tag) => ({
         name: tag,
         description: `${tag} endpoints`,

@@ -10,9 +10,14 @@ const router = Router();
 router.get("/", rootHandler);
 
 // Swagger UI with auto-generated spec
-router.use("/api-docs", swaggerUi.serve, (_req: Request, res: Response, next: NextFunction) => {
-  const spec = routeRegistry.generateOpenAPI("/*__PROJECT_NAME__*/", "1.0.0");
-  swaggerUi.setup(spec)(_req, res, next);
+router.use("/api-docs", swaggerUi.serve, (req: Request, res: Response, next: NextFunction) => {
+  const projectName = "/*__PROJECT_NAME__*/";
+  const baseUrl = `${req.protocol}://${req.get("host")}`;
+  const spec = routeRegistry.generateOpenAPI(projectName, "1.0.0", baseUrl);
+  const options = {
+    customSiteTitle: projectName,
+  };
+  swaggerUi.setup(spec, options)(req, res, next);
 });
 
 router.use("/api", modulesRouter);
