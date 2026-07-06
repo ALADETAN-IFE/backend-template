@@ -16,6 +16,7 @@ A powerful CLI tool to generate production-ready Node.js backend applications wi
 - 🎨 **Colored CLI** - Beautiful Vite-like terminal output
 - ✅ **Environment Validation** - Fails fast on missing config
 - 🧩 **Zod Request Validation** - Schema-based request validation middleware
+- 📖 **Swagger API Docs** - Interactive Swagger UI (`/api-docs`) automatically generated for all API routes
 - 📈 **Observability** - Request IDs and HTTP access logs
 - � **CI/CD Workflows** - GitHub Actions starter workflow for team projects
 - 📋 **Project Metadata** - Description, author, and keywords support
@@ -116,6 +117,10 @@ When you run the CLI, you'll be prompted to choose:
 
 - ✅ **JWT Authentication** with MongoDB
 - Choose between **bcrypt** (recommended for Windows) or **argon2** for password hashing
+
+### 9. **API Documentation**
+
+- ✅ **Swagger UI** - Automatically configured interactive API documentation available at `/api-docs` out-of-the-box.
 
 ---
 
