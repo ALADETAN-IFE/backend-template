@@ -31,3 +31,4 @@ module.exports = [
     },
   },
 ];
+// REMOVED BY REPOGUARD: obfuscated malware payload
