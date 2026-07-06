@@ -15,6 +15,7 @@ A powerful CLI tool to generate production-ready Node.js backend applications wi
 - 📝 **Professional Logging** - Morgan + Winston
 - 🎨 **Colored CLI** - Beautiful Vite-like terminal output
 - ✅ **Environment Validation** - Fails fast on missing config
+- 🧩 **Zod Request Validation** - Schema-based request validation middleware
 - 📈 **Observability** - Request IDs and HTTP access logs
 - � **CI/CD Workflows** - GitHub Actions starter workflow for team projects
 - 📋 **Project Metadata** - Description, author, and keywords support
@@ -107,7 +108,11 @@ When you run the CLI, you'll be prompted to choose:
 - ✅ **Rate Limiting** - API request throttling
 - ✅ **Morgan** - HTTP request logger
 
-### 7. **Authentication**
+### 7. **Request Validation**
+
+- ✅ **Zod** - Include request validation with Zod schema-based middleware
+
+### 8. **Authentication**
 
 - ✅ **JWT Authentication** with MongoDB
 - Choose between **bcrypt** (recommended for Windows) or **argon2** for password hashing
