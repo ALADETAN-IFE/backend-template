@@ -33,7 +33,7 @@ The template distinguishes between **team projects** and **individual projects**
 
 Team projects automatically receive:
 
-- ✅ **GitHub Actions Workflow** (`.github/workflows/ci-cd.yml`) - CI/CD automation for building, linting, and testing
+- ✅ **GitHub Actions Workflow** (`.github/workflows/ci_cd.yml`) - CI/CD automation for building, linting, and testing
 - ✅ **Pull Request Template** (`.github/pull_request_template.md`) - Standardized PR format for contributions
 - ✅ **Contributing Guide** (`CONTRIBUTING.md`) - Guidelines for team collaboration, code style, commit conventions, and development setup
 
@@ -144,7 +144,7 @@ my-backend/
 │   └── server.ts       # Server entry point
 ├── .github/            # GitHub configuration (team projects only)
 │   ├── workflows/      # CI/CD workflows
-│   │   └── ci-cd.yml   # GitHub Actions workflow
+│   │   └── ci_cd.yml   # GitHub Actions workflow
 │   └── pull_request_template.md # PR template
 ├── .husky/             # Git hooks
 ├── .env                # Environment variables
@@ -166,7 +166,7 @@ my-project/
 │   └── auth-service/   # Authentication (port 4002, if enabled)
 ├── .github/            # GitHub configuration (team projects only)
 │   ├── workflows/      # CI/CD workflows
-│   │   └── ci-cd.yml   # GitHub Actions workflow
+│   │   └── ci_cd.yml   # GitHub Actions workflow
 │   └── pull_request_template.md # PR template
 ├── docker-compose.yml  # Docker setup (if selected)
 ├── pm2.config.js       # PM2 setup (if selected)

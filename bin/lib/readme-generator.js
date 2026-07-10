@@ -16,7 +16,7 @@ export const generateReadme = (config, serviceName = null) => {
       : 4001 +
         services.filter(
           (service, serviceIndex) =>
-            service !== "gateway" && serviceIndex < index
+            service !== "gateway" && serviceIndex < index,
         ).length;
 
   let readme = `# ${serviceName || sanitizedName}\n\n`;
@@ -44,7 +44,7 @@ export const generateReadme = (config, serviceName = null) => {
       readme += `  - ${pretty} (port ${getPort(
         servicesList,
         service,
-        index
+        index,
       )})\n`;
     });
     readme += `\n`;
@@ -216,7 +216,7 @@ export const generateReadme = (config, serviceName = null) => {
       const authPort = getPort(
         servicesList,
         "auth-service",
-        servicesList.indexOf("auth-service")
+        servicesList.indexOf("auth-service"),
       );
       readme += `# Auth requests (through gateway)\n`;
       readme += `curl -X POST http://localhost:4000/api/v1/auth/register \\\n+  -H "Content-Type: application/json" \\\n+  -d '{"username":"testuser","password":"password123"}'\n\n`;
@@ -274,7 +274,7 @@ export const generateReadme = (config, serviceName = null) => {
     if (config.cicd) {
       readme += `├── .github/\n`;
       readme += `│   ├── workflows/\n`;
-      readme += `│   │   └── ci-cd.yml        # GitHub Actions CI/CD workflow\n`;
+      readme += `│   │   └── ci_cd.yml        # GitHub Actions CI/CD workflow\n`;
       readme += `│   └── pull_request_template.md  # PR template\n`;
     }
     readme += `├── .husky/             # Git hooks\n`;
@@ -346,7 +346,7 @@ export const generateReadme = (config, serviceName = null) => {
   if (config.cicd && !isMicroservice) {
     readme += `## Generated Files\n\n`;
     readme += `The following files have been automatically generated for team projects:\n\n`;
-    readme += `- \`.github/workflows/ci-cd.yml\` - GitHub Actions CI/CD workflow\n`;
+    readme += `- \`.github/workflows/ci_cd.yml\` - GitHub Actions CI/CD workflow\n`;
     readme += `- \`.github/pull_request_template.md\` - Pull request template\n`;
     readme += `- \`CONTRIBUTING.md\` - Contribution guidelines\n\n`;
     readme += `These files are ready to use and can be customized for your team's needs.\n\n`;

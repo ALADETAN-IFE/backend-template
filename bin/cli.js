@@ -69,7 +69,7 @@ jobs:
         run: npm run build
 `;
 
-  fs.writeFileSync(path.join(workflowsDir, "ci-cd.yml"), workflowContent);
+  fs.writeFileSync(path.join(workflowsDir, "ci_cd.yml"), workflowContent);
 }
 
 function writePullRequestTemplate(target, config) {
