@@ -28,17 +28,37 @@ function writeStarterWorkflow(target, config) {
     ? `${config.sanitizedName} CI/CD`
     : "Build CI/CD";
 
+  const deploymentTarget = config.deploymentTarget || "ci-only";
+  const releaseTrigger = config.releaseTrigger || "manual";
+  const deploymentEnvironments = config.deploymentEnvironments || "single";
+
+  const releaseTriggerBlock =
+    releaseTrigger === "push-main"
+      ? `  push:\n    branches:\n      - main`
+      : releaseTrigger === "tag"
+      ? `  push:\n    tags:\n      - "v*"`
+      : "";
+
+  const deploymentJob =
+    deploymentTarget === "ci-only"
+      ? ""
+      : deploymentTarget === "platform"
+      ? `\n  deploy:\n    name: Deploy to managed app platform\n    runs-on: ubuntu-latest\n    needs: build\n    environment: ${deploymentEnvironments === "staging-prod" ? "staging" : "production"}\n    steps:\n      - name: Placeholder deployment step\n        run: echo "Wire this job to your platform (Render, Railway, Fly, etc.)"\n`
+      : deploymentTarget === "docker"
+      ? `\n  deploy:\n    name: Build and publish Docker image\n    runs-on: ubuntu-latest\n    needs: build\n    environment: ${deploymentEnvironments === "staging-prod" ? "staging" : "production"}\n    steps:\n      - name: Placeholder image publish step\n        run: echo "Wire this job to your registry and image deploy target"\n`
+      : deploymentTarget === "kubernetes"
+      ? `\n  deploy:\n    name: Deploy to Kubernetes\n    runs-on: ubuntu-latest\n    needs: build\n    environment: ${deploymentEnvironments === "staging-prod" ? "staging" : "production"}\n    steps:\n      - name: Placeholder kubectl step\n        run: echo "Wire this job to kubectl, Helm, or your cluster CD flow"\n`
+      : `\n  deploy:\n    name: Deploy serverless release\n    runs-on: ubuntu-latest\n    needs: build\n    environment: ${deploymentEnvironments === "staging-prod" ? "staging" : "production"}\n    steps:\n      - name: Placeholder serverless deploy step\n        run: echo "Wire this job to your serverless provider"\n`;
+
+  const onBlock =
+    releaseTrigger === "manual"
+      ? `  workflow_dispatch:`
+      : `${releaseTriggerBlock}\n  pull_request:\n    branches:\n      - main\n      - dev`;
+
   const workflowContent = `name: ${workflowName}
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-      - dev
+${onBlock}
 
 jobs:
   # ------------------------
@@ -67,6 +87,7 @@ jobs:
 
       - name: Run build
         run: npm run build
+${deploymentJob}
 `;
 
   fs.writeFileSync(path.join(workflowsDir, "ci_cd.yml"), workflowContent);

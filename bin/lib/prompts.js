@@ -162,6 +162,49 @@ export const getProjectConfig = async () => {
         active: pc.green("yes"),
         inactive: pc.red("no"),
       },
+      {
+        type:
+          isInMicroserviceProject || isCI || res.projectScope !== "team"
+            ? null
+            : "select",
+        name: "deploymentTarget",
+        message: pc.cyan("What kind of deployment target does the team need?"),
+        choices: [
+          { title: pc.green("CI only for now"), value: "ci-only" },
+          { title: pc.blue("Managed app platform"), value: "platform" },
+          { title: pc.yellow("Docker image / registry"), value: "docker" },
+          { title: pc.magenta("Kubernetes / Helm"), value: "kubernetes" },
+          { title: pc.cyan("Serverless"), value: "serverless" },
+        ],
+        initial: 0,
+      },
+      {
+        type:
+          isInMicroserviceProject || isCI || res.projectScope !== "team"
+            ? null
+            : "select",
+        name: "releaseTrigger",
+        message: pc.cyan("When should deployment happen?"),
+        choices: [
+          { title: pc.green("On push to main"), value: "push-main" },
+          { title: pc.blue("On version tag"), value: "tag" },
+          { title: pc.yellow("Manual workflow dispatch"), value: "manual" },
+        ],
+        initial: 0,
+      },
+      {
+        type:
+          isInMicroserviceProject || isCI || res.projectScope !== "team"
+            ? null
+            : "select",
+        name: "deploymentEnvironments",
+        message: pc.cyan("How many environments does the team need?"),
+        choices: [
+          { title: pc.green("Single environment"), value: "single" },
+          { title: pc.blue("Staging + production"), value: "staging-prod" },
+        ],
+        initial: 0,
+      },
     ],
     {
       onCancel: () => {
@@ -206,6 +249,9 @@ export const getProjectConfig = async () => {
     res.language = res.language || "typescript"; // Default to TypeScript in CI
     res.projectScope = res.projectScope || "team";
     res.validation = res.validation ?? false;
+    res.deploymentTarget = res.deploymentTarget || "ci-only";
+    res.releaseTrigger = res.releaseTrigger || "manual";
+    res.deploymentEnvironments = res.deploymentEnvironments || "single";
   }
 
   // Merge CLI args with prompted responses
