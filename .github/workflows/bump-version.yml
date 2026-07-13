@@ -1,0 +1,36 @@
+name: Bump version
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: "Version bump type"
+        type: choice
+        required: true
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        run: npm version ${{ inputs.release_type }}
+
+      - name: Push changes and tag
+        run: git push origin main --follow-tags
