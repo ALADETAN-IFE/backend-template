@@ -291,7 +291,9 @@ export const getProjectConfig = async () => {
     );
     console.log(pc.dim(`Mode: ${mode}\n`));
   } else {
-    sanitizedName = res.name.replace(/\s+/g, "-");
+    // Keep res.name for package.json (supports scoped names like @scope/pkg).
+    // Derive a single-segment folder name — "/" would create nested directories.
+    sanitizedName = toDirectoryName(res.name);
     target = path.resolve(process.cwd(), sanitizedName);
     isExistingProject = fs.existsSync(target);
     mode = res.mode;
@@ -320,4 +322,17 @@ function normalizeServiceName(name) {
   svc = svc.replace(/\s+/g, "-").replace(/[^a-z0-9\-]/g, "");
   if (!svc.endsWith("-service")) svc = `${svc}-service`;
   return svc;
+}
+
+// Filesystem-safe directory name. Scoped npm names (@scope/pkg) become "scope-pkg".
+function toDirectoryName(name) {
+  const dir = String(name || "")
+    .trim()
+    .replace(/^@/, "")
+    .replace(/\s+/g, "-")
+    .replace(/[\\/]+/g, "-")
+    .replace(/[<>:"|?*]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return dir || "my-backend";
 }
