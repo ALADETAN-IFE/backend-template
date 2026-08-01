@@ -708,7 +708,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
   const rootPackageJsonPath = path.join(target, "package.json");
   if (!fs.existsSync(rootPackageJsonPath)) {
     const rootPackageJson = {
-      name: sanitizedName,
+      name: config.name.replace(/\s+/g, "-") || sanitizedName,
       version: config.version || "1.0.0",
       description: config.description || "",
       private: true,
