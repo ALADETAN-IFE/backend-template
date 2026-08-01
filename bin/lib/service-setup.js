@@ -754,9 +754,12 @@ export const setupService = async (
   const packageJsonPath = path.join(serviceRoot, "package.json");
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
 
+  // Prefer the original project name so scoped packages (e.g. @scope/pkg) are preserved.
+  const packageName = serviceName || res.name || res.sanitizedName;
+
   // Create new package.json with name at the top
   const orderedPackageJson = {
-    name: serviceName || res.sanitizedName,
+    name: packageName,
     version: packageJson.version,
     description: res.description || packageJson.description,
     ...packageJson,
@@ -769,7 +772,7 @@ export const setupService = async (
 
   // Re-add them at the top in correct order
   const finalPackageJson = {
-    name: serviceName || res.sanitizedName,
+    name: packageName,
     version: packageJson.version,
     description: res.description || packageJson.description,
     ...orderedPackageJson,
