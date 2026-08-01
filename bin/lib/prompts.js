@@ -9,7 +9,7 @@ export const getProjectConfig = async () => {
 
   // Check if we're in an existing microservice project
   const isInMicroserviceProject = fs.existsSync(
-    path.join(process.cwd(), "services")
+    path.join(process.cwd(), "services"),
   );
 
   // Parse command line arguments
@@ -22,7 +22,7 @@ export const getProjectConfig = async () => {
 
   const projectTypeKeywords = ["microservice", "monolith", "micro", "mono"];
   const projectTypeIndex = args.findIndex((arg) =>
-    projectTypeKeywords.includes(arg.toLowerCase())
+    projectTypeKeywords.includes(arg.toLowerCase()),
   );
 
   if (projectTypeIndex !== -1) {
@@ -163,8 +163,8 @@ export const getProjectConfig = async () => {
         inactive: pc.red("no"),
       },
       {
-        type:
-          isInMicroserviceProject || isCI || res.projectScope !== "team"
+        type: (_prev, values) =>
+          isInMicroserviceProject || isCI || values.projectScope !== "team"
             ? null
             : "select",
         name: "deploymentTarget",
@@ -179,8 +179,8 @@ export const getProjectConfig = async () => {
         initial: 0,
       },
       {
-        type:
-          isInMicroserviceProject || isCI || res.projectScope !== "team"
+        type: (_prev, values) =>
+          isInMicroserviceProject || isCI || values.projectScope !== "team"
             ? null
             : "select",
         name: "releaseTrigger",
@@ -193,8 +193,8 @@ export const getProjectConfig = async () => {
         initial: 0,
       },
       {
-        type:
-          isInMicroserviceProject || isCI || res.projectScope !== "team"
+        type: (_prev, values) =>
+          isInMicroserviceProject || isCI || values.projectScope !== "team"
             ? null
             : "select",
         name: "deploymentEnvironments",
@@ -211,7 +211,7 @@ export const getProjectConfig = async () => {
         console.log(pc.yellow("\n❌ Operation cancelled by user."));
         process.exit(0);
       },
-    }
+    },
   );
 
   // Handle cancelled prompts (user pressed Ctrl+C or closed the prompt)
@@ -287,7 +287,7 @@ export const getProjectConfig = async () => {
       : "nodocker";
 
     console.log(
-      pc.cyan(`\n📁 Detected existing microservice project: ${sanitizedName}`)
+      pc.cyan(`\n📁 Detected existing microservice project: ${sanitizedName}`),
     );
     console.log(pc.dim(`Mode: ${mode}\n`));
   } else {
