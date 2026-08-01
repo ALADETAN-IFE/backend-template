@@ -33,4 +33,4 @@ jobs:
         run: npm version ${{ inputs.release_type }}
 
       - name: Push changes and tag
-        run: git push origin main --follow-tags
+        run: git push origin HEAD:${{ github.ref_name }} --follow-tags
