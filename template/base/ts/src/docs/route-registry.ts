@@ -50,7 +50,11 @@ class RouteRegistry {
     return this.routes;
   }
 
-  generateOpenAPI(projectName: string, version = "1.0.0", baseUrl: string,): Record<string, unknown> {
+  generateOpenAPI(
+    projectName: string,
+    version = "1.0.0",
+    baseUrl: string,
+  ): Record<string, unknown> {
     const paths: Record<string, unknown> = {};
     const tags = new Set<string>();
 

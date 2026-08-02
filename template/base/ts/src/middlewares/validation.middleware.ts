@@ -7,7 +7,9 @@ type RequestSchemas = {
   params?: { parse: (value: unknown) => unknown };
 };
 
-const isValidationError = (error: unknown): error is { issues: Array<{ path?: Array<string | number>; message: string }> } => {
+const isValidationError = (
+  error: unknown,
+): error is { issues: Array<{ path?: Array<string | number>; message: string }> } => {
   return (
     typeof error === "object" &&
     error !== null &&
