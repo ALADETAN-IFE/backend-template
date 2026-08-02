@@ -6,7 +6,7 @@ const { errorHandler, observabilityMiddleware } = require('./middlewares');
 const app = express();
 
 // Enable trust proxy for reverse proxy
-app.set("trust proxy", 1);
+app.set('trust proxy', 1);
 
 // Parse JSON request bodies
 app.use(express.json());
