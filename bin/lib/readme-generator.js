@@ -16,7 +16,7 @@ export const generateReadme = (config, serviceName = null) => {
       : 4001 +
         services.filter(
           (service, serviceIndex) =>
-            service !== "gateway" && serviceIndex < index,
+            service !== "gateway" && serviceIndex < index
         ).length;
 
   let readme = `# ${serviceName || sanitizedName}\n\n`;
@@ -44,7 +44,7 @@ export const generateReadme = (config, serviceName = null) => {
       readme += `  - ${pretty} (port ${getPort(
         servicesList,
         service,
-        index,
+        index
       )})\n`;
     });
     readme += `\n`;
@@ -216,7 +216,7 @@ export const generateReadme = (config, serviceName = null) => {
       const authPort = getPort(
         servicesList,
         "auth-service",
-        servicesList.indexOf("auth-service"),
+        servicesList.indexOf("auth-service")
       );
       readme += `# Auth requests (through gateway)\n`;
       readme += `curl -X POST http://localhost:4000/api/v1/auth/register \\\n+  -H "Content-Type: application/json" \\\n+  -d '{"username":"testuser","password":"password123"}'\n\n`;
