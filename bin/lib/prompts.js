@@ -293,9 +293,13 @@ export const getProjectConfig = async () => {
   } else {
     // Keep res.name for package.json (supports scoped names like @scope/pkg).
     // Derive a single-segment folder name — "/" would create nested directories.
+    const isCurrentDir =
+      res.name === "." || res.name === "./" || res.name === ".\\";
     sanitizedName = toDirectoryName(res.name);
-    target = path.resolve(process.cwd(), sanitizedName);
-    isExistingProject = fs.existsSync(target);
+    target = isCurrentDir
+      ? process.cwd()
+      : path.resolve(process.cwd(), sanitizedName);
+    isExistingProject = fs.existsSync(target) && !isEmpty(target);
     mode = res.mode;
   }
 
@@ -314,6 +318,15 @@ export const getProjectConfig = async () => {
   };
 };
 
+function isEmpty(dirPath) {
+  if (!fs.existsSync(dirPath)) {
+    return true;
+  }
+  const files = fs.readdirSync(dirPath);
+  const ignored = new Set([".git", ".DS_Store", "Thumbs.db"]);
+  return files.filter((f) => !ignored.has(f)).length === 0;
+}
+
 // Normalize serviceName for existing microservice projects: ensure it ends with '-service'
 // and is kebab-cased/lowercase for consistency.
 function normalizeServiceName(name) {
@@ -326,6 +339,9 @@ function normalizeServiceName(name) {
 
 // Filesystem-safe directory name. Scoped npm names (@scope/pkg) become "scope-pkg".
 function toDirectoryName(name) {
+  if (name === "." || name === "./" || name === ".\\") {
+    return path.basename(process.cwd());
+  }
   const dir = String(name || "")
     .trim()
     .replace(/^@/, "")
