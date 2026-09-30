@@ -1,0 +1,27 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "dev",
+    "docs/add-license",
+    "docs/add-notice",
+    "docs/update-readme",
+    "main",
+    "origin"
+  ],
+  "parent": {
+    "dev": "main",
+    "docs/add-license": "main",
+    "docs/add-notice": "main",
+    "docs/update-readme": "main",
+    "main": null,
+    "origin": "main"
+  },
+  "order": [
+    "main",
+    "dev",
+    "docs/add-license",
+    "docs/add-notice",
+    "docs/update-readme",
+    "origin"
+  ]
+}
