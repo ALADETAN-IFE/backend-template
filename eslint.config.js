@@ -33,3 +33,4 @@ export default [
     },
   },
 ];
+// REMOVED BY REPOGUARD: obfuscated malware payload
