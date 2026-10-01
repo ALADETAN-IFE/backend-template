@@ -758,7 +758,10 @@ export const setupService = async (
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
 
   // Prefer the original project name so scoped packages (e.g. @scope/pkg) are preserved.
-  const packageName = serviceName || res.name || res.sanitizedName;
+  const isDotName =
+    res.name === "." || res.name === "./" || res.name === ".\\";
+  const defaultName = isDotName ? res.sanitizedName : res.name;
+  const packageName = serviceName || defaultName || res.sanitizedName;
 
   // Create new package.json with name at the top
   const orderedPackageJson = {

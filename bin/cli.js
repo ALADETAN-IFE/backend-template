@@ -346,10 +346,11 @@ if (isInMicroserviceProject) {
 // Validate and prepare project
 if (!isInMicroserviceProject && config.projectType === "microservice") {
   if (isExistingProject) {
+    const dirDisplay = target === process.cwd() ? "." : sanitizedName;
     console.error(
-      `\n${pc.red("❌ Error:")} Project ${pc.bold(
-        sanitizedName
-      )} already exists!`
+      `\n${pc.red("❌ Error:")} Directory ${pc.bold(
+        dirDisplay
+      )} already exists and is not empty!`
     );
     process.exit(1);
   }
@@ -360,10 +361,11 @@ if (!isInMicroserviceProject && config.projectType === "microservice") {
   );
 } else if (!isInMicroserviceProject && config.projectType === "monolith") {
   if (isExistingProject) {
+    const dirDisplay = target === process.cwd() ? "." : sanitizedName;
     console.error(
-      `\n${pc.red("❌ Error:")} Project ${pc.bold(
-        sanitizedName
-      )} already exists!`
+      `\n${pc.red("❌ Error:")} Directory ${pc.bold(
+        dirDisplay
+      )} already exists and is not empty!`
     );
     process.exit(1);
   }
@@ -715,8 +717,14 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
   // Create root package.json for microservice monorepo if it doesn't exist
   const rootPackageJsonPath = path.join(target, "package.json");
   if (!fs.existsSync(rootPackageJsonPath)) {
+    const isDotName =
+      config.name === "." || config.name === "./" || config.name === ".\\";
+    const rootName =
+      (isDotName ? sanitizedName : config.name.replace(/\s+/g, "-")) ||
+      sanitizedName;
+
     const rootPackageJson = {
-      name: config.name.replace(/\s+/g, "-") || sanitizedName,
+      name: rootName,
       version: config.version || "1.0.0",
       description: config.description || "",
       private: true,
@@ -1278,13 +1286,23 @@ if (isInMicroserviceProject) {
     `\n${pc.cyan("📦 Created services:")} ${servicesToCreate.join(", ")}`
   );
   console.log(`\n${pc.blue("💡 Next steps:")}`);
-  console.log(`   ${pc.dim("1.")} cd ${pc.bold(sanitizedName)}`);
-  console.log(`   ${pc.dim("2.")} Start services: ${pc.bold("npm run dev")}`);
+  const isCurrentDir = target === process.cwd();
+  if (!isCurrentDir) {
+    console.log(`   ${pc.dim("1.")} cd ${pc.bold(sanitizedName)}`);
+    console.log(`   ${pc.dim("2.")} Start services: ${pc.bold("npm run dev")}`);
+  } else {
+    console.log(`   ${pc.dim("1.")} Start services: ${pc.bold("npm run dev")}`);
+  }
 } else {
   console.log(`\n${pc.green("✅ Monolith Backend created successfully!")}`);
   console.log(`\n${pc.blue("💡 Next steps:")}`);
-  console.log(`   ${pc.dim("1.")} cd ${pc.bold(sanitizedName)}`);
-  console.log(`   ${pc.dim("2.")} npm run dev`);
+  const isCurrentDir = target === process.cwd();
+  if (!isCurrentDir) {
+    console.log(`   ${pc.dim("1.")} cd ${pc.bold(sanitizedName)}`);
+    console.log(`   ${pc.dim("2.")} npm run dev`);
+  } else {
+    console.log(`   ${pc.dim("1.")} npm run dev`);
+  }
 }
 // Post-processing: ensure shared config does not export/connect to DB when auth is disabled
 try {
