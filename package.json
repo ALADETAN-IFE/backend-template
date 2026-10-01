@@ -1,14 +1,16 @@
 {
   "name": "@ifecodes/backend-template",
-  "version": "1.4.9",
+  "version": "1.5.0",
   "description": "Production-ready Express + TypeScript/JavaScript backend generator with optional features and microservice support",
   "bin": {
-    "ifecodes-template": "bin/cli.js"
+    "ifecodes-template": "bin/cli.js",
+    "backend-template": "bin/cli.js"
   },
   "type": "module",
   "files": [
     "bin",
-    "template"
+    "template",
+    "scripts"
   ],
   "scripts": {
     "lint": "eslint .",
