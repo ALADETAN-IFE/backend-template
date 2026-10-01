@@ -144,6 +144,7 @@ export async function ensurePackageManager(chosenPm = "npm") {
 
   if (response.action === "install_now") {
     console.log(pc.cyan(`\n⏳ Attempting to enable/install ${chosenPm}...`));
+    let installed = false;
     try {
       if (chosenPm === "pnpm" || chosenPm === "yarn") {
         try {
@@ -156,16 +157,69 @@ export async function ensurePackageManager(chosenPm = "npm") {
       }
 
       if (isPackageManagerInstalled(chosenPm)) {
+        installed = true;
         console.log(pc.green(`\n✅ ${chosenPm} installed and ready!\n`));
         return { pm: chosenPm, preferredPm: chosenPm, skipInstall: false };
       }
     } catch (err) {
-      console.warn(
-        pc.yellow(`\n⚠️  Could not automatically install ${chosenPm}.`)
-      );
+      // Handled below
     }
-    console.log(pc.cyan(`🔄 Falling back to npm for installation...\n`));
-    return { pm: "npm", preferredPm: chosenPm, skipInstall: false };
+
+    if (!installed) {
+      console.warn(
+        pc.red(`\n❌ Failed to enable/install '${chosenPm}' automatically.`)
+      );
+
+      const retryResponse = await prompts({
+        type: "select",
+        name: "action",
+        message: pc.cyan(
+          `Since '${chosenPm}' could not be installed, how would you like to proceed?`
+        ),
+        choices: [
+          {
+            title: `${pc.green("Fall back to npm")} ${pc.dim(
+              "(Install dependencies with npm instead)"
+            )}`,
+            value: "fallback",
+          },
+          {
+            title: `${pc.yellow("Skip installation")} ${pc.dim(
+              `(Generate files only, I will install ${chosenPm} manually)`
+            )}`,
+            value: "skip",
+          },
+          {
+            title: `${pc.red("Abort project creation")}`,
+            value: "abort",
+          },
+        ],
+        initial: 0,
+      });
+
+      if (!retryResponse.action || retryResponse.action === "abort") {
+        console.log(pc.red("\n❌ Operation aborted by user."));
+        process.exit(0);
+      }
+
+      if (retryResponse.action === "skip") {
+        console.log(
+          pc.yellow(
+            `\n⏭️  Skipping dependency installation. Project will be configured for ${chosenPm}.\n`
+          )
+        );
+        return { pm: chosenPm, preferredPm: chosenPm, skipInstall: true };
+      }
+
+      console.log(
+        pc.cyan(
+          `\n🔄 Proceeding with ${pc.bold(
+            "npm"
+          )} for dependency installation...\n`
+        )
+      );
+      return { pm: "npm", preferredPm: chosenPm, skipInstall: false };
+    }
   }
 
   return { pm: "npm", preferredPm: chosenPm, skipInstall: false };
