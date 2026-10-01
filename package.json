@@ -8,7 +8,8 @@
   "type": "module",
   "files": [
     "bin",
-    "template"
+    "template",
+    "scripts"
   ],
   "scripts": {
     "lint": "eslint .",
