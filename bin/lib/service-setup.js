@@ -4,6 +4,7 @@ import prompts from "prompts";
 import pc from "picocolors";
 import { execSync } from "child_process";
 import { fileURLToPath } from "url";
+import { getPackageManagerCommands } from "./package-manager.js";
 
 // Helper function to get the correct file extension (.ts or .js)
 function getFileExtension(dir) {
@@ -872,31 +873,34 @@ export const setupService = async (
   );
 
   let installSucceeded = false;
+  const pm = getPackageManagerCommands(res.packageManager || "npm");
 
   try {
     if (deps.length) {
-      execSync(`npm install ${deps.join(" ")}`, {
+      execSync(pm.add(deps), {
         cwd: serviceRoot,
         stdio: "inherit",
       });
     }
     if (devDeps.length) {
-      execSync(`npm install -D ${devDeps.join(" ")}`, {
+      execSync(pm.addDev(devDeps), {
         cwd: serviceRoot,
         stdio: "inherit",
       });
     }
-    execSync("npm install", { cwd: serviceRoot, stdio: "inherit" });
+    execSync(pm.install, { cwd: serviceRoot, stdio: "inherit" });
     installSucceeded = true;
 
     // Run format after successful install
     console.log(pc.cyan("\n🎨 Formatting code...\n"));
     try {
-      execSync("npm run format", { cwd: serviceRoot, stdio: "inherit" });
+      execSync(pm.run("format"), { cwd: serviceRoot, stdio: "inherit" });
     } catch (formatError) {
       console.warn(
         pc.yellow(
-          "⚠️  Warning: Code formatting failed. You can run it manually later with: npm run format\n"
+          `⚠️  Warning: Code formatting failed. You can run it manually later with: ${pm.run(
+            "format"
+          )}\n`
         )
       );
     }
@@ -904,9 +908,9 @@ export const setupService = async (
     console.error(pc.red("\n❌ Failed to install dependencies"));
     console.error(pc.dim(`\nYou can install them later by running:`));
     console.error(
-      pc.cyan(`   cd ${serviceName || res.sanitizedName} && npm install`)
+      pc.cyan(`   cd ${serviceName || res.sanitizedName} && ${pm.install}`)
     );
-    console.error(pc.dim("   Then run: npm run format\n"));
+    console.error(pc.dim(`   Then run: ${pm.run("format")}\n`));
 
     // Don't exit - let the project be created anyway
     console.log(pc.cyan("⏭️  Continuing with project creation...\n"));

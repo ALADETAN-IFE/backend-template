@@ -2,10 +2,22 @@ import prompts from "prompts";
 import pc from "picocolors";
 import fs from "fs";
 import path from "path";
+import { detectPackageManager } from "./package-manager.js";
 
 export const getProjectConfig = async () => {
   // Check if running in CI or non-interactive mode
   const isCI = process.env.CI === "true" || !process.stdin.isTTY;
+  const detectedPm = detectPackageManager();
+  const pmChoices = [
+    { title: pc.yellow("pnpm (Recommended)"), value: "pnpm" },
+    { title: pc.red("npm"), value: "npm" },
+    { title: pc.blue("yarn"), value: "yarn" },
+    { title: pc.magenta("bun"), value: "bun" },
+  ];
+  const initialPmIndex = Math.max(
+    0,
+    pmChoices.findIndex((c) => c.value === detectedPm)
+  );
 
   // Check if we're in an existing microservice project
   const isInMicroserviceProject = fs.existsSync(
@@ -106,6 +118,13 @@ export const getProjectConfig = async () => {
           { title: pc.blue("With Docker 🐳"), value: "docker" },
           { title: pc.yellow("Without Docker (PM2)"), value: "nodocker" },
         ],
+      },
+      {
+        type: isInMicroserviceProject || isCI ? null : "select",
+        name: "packageManager",
+        message: pc.cyan("Select package manager"),
+        choices: pmChoices,
+        initial: initialPmIndex,
       },
       {
         type: isInMicroserviceProject ? "text" : isCI ? null : "multiselect",
@@ -252,7 +271,10 @@ export const getProjectConfig = async () => {
     res.deploymentTarget = res.deploymentTarget || "ci-only";
     res.releaseTrigger = res.releaseTrigger || "manual";
     res.deploymentEnvironments = res.deploymentEnvironments || "single";
+    res.packageManager = res.packageManager || detectedPm || "npm";
   }
+
+  res.packageManager = res.packageManager || detectedPm || "npm";
 
   // Merge CLI args with prompted responses
   if (hasCliArgs) {

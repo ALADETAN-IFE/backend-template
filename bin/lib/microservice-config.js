@@ -153,3 +153,8 @@ export const copyDockerignore = (target, servicesToCreate) => {
     }
   }
 };
+
+export const generatePnpmWorkspace = (target) => {
+  const content = `packages:\n  - "services/*"\n  - "shared"\n`;
+  fs.writeFileSync(path.join(target, "pnpm-workspace.yaml"), content);
+};

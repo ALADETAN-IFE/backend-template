@@ -77,10 +77,13 @@ export const generateReadme = (config, serviceName = null) => {
   if (config.cicd) readme += `- **CI/CD**: GitHub Actions starter workflow\n`;
   readme += `\n`;
 
+  const pm = config.packageManager || "npm";
+  const pmRun = pm === "npm" ? "npm run" : pm === "yarn" ? "yarn" : `${pm}`;
+
   readme += `## Getting Started\n\n`;
   readme += `### Prerequisites\n\n`;
   readme += `- Node.js (v18 or higher)\n`;
-  readme += `- npm or yarn\n`;
+  readme += `- ${pm}\n`;
   if (auth) readme += `- MongoDB\n`;
   if (isMicroservice && mode === "docker")
     readme += `- Docker & Docker Compose\n`;
@@ -99,7 +102,7 @@ export const generateReadme = (config, serviceName = null) => {
     readme += `2. Install dependencies for all services\n`;
     readme += `\`\`\`bash\n`;
     readme += `# Install root dependencies (Husky)\n`;
-    readme += `npm install\n\n`;
+    readme += `${pm} install\n\n`;
     readme += `# Install dependencies for each service\n`;
     servicesList.forEach((service) => {
       if (
@@ -107,14 +110,14 @@ export const generateReadme = (config, serviceName = null) => {
         service === "health-service" ||
         service === "auth-service"
       ) {
-        readme += `cd services/${service} && npm install && cd ../..\n`;
+        readme += `cd services/${service} && ${pm} install && cd ../..\n`;
       }
     });
     readme += `\`\`\`\n\n`;
   } else {
     readme += `2. Install dependencies\n`;
     readme += `\`\`\`bash\n`;
-    readme += `npm install\n`;
+    readme += `${pm} install\n`;
     readme += `\`\`\`\n\n`;
   }
 
@@ -162,13 +165,13 @@ export const generateReadme = (config, serviceName = null) => {
   } else {
     readme += `### Development\n\n`;
     readme += `\`\`\`bash\n`;
-    readme += `npm run dev\n`;
+    readme += `${pmRun} dev\n`;
     readme += `\`\`\`\n\n`;
     if (isTypeScript) {
       readme += `### Production\n\n`;
       readme += `\`\`\`bash\n`;
-      readme += `npm run build\n`;
-      readme += `npm start\n`;
+      readme += `${pmRun} build\n`;
+      readme += `${pmRun} start\n`;
       readme += `\`\`\`\n\n`;
     }
   }
@@ -301,8 +304,8 @@ export const generateReadme = (config, serviceName = null) => {
   readme += `## Available Scripts\n\n`;
   if (isMicroservice) {
     if (mode === "docker") {
-      readme += `- \`npm run dev\` - Start all services\n`;
-      readme += `- \`npm stop\` - Stop all services\n`;
+      readme += `- \`${pmRun} dev\` - Start all services\n`;
+      readme += `- \`${pmRun} stop\` - Stop all services\n`;
       readme += `- \`docker-compose logs -f [service-name]\` - View service logs\n`;
     } else {
       readme += `- \`pm2 start pm2.config.js\` - Start all services\n`;
@@ -311,11 +314,11 @@ export const generateReadme = (config, serviceName = null) => {
       readme += `- \`pm2 stop all\` - Stop all services\n`;
     }
   } else {
-    readme += `- \`npm run dev\` - Start development server with hot reload\n`;
-    if (isTypeScript) readme += `- \`npm run build\` - Build for production\n`;
-    readme += `- \`npm start\` - Start production server\n`;
-    readme += `- \`npm run lint\` - Run ESLint\n`;
-    readme += `- \`npm run format\` - Run Prettier\n`;
+    readme += `- \`${pmRun} dev\` - Start development server with hot reload\n`;
+    if (isTypeScript) readme += `- \`${pmRun} build\` - Build for production\n`;
+    readme += `- \`${pmRun} start\` - Start production server\n`;
+    readme += `- \`${pmRun} lint\` - Run ESLint\n`;
+    readme += `- \`${pmRun} format\` - Run Prettier\n`;
   }
   readme += `\n`;
 

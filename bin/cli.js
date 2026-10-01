@@ -12,9 +12,14 @@ import { generateReadme } from "./lib/readme-generator.js";
 import {
   generateDockerCompose,
   generatePm2Config,
+  generatePnpmWorkspace,
   copyDockerfile,
   copyDockerignore,
 } from "./lib/microservice-config.js";
+import {
+  ensurePackageManager,
+  getPackageManagerCommands,
+} from "./lib/package-manager.js";
 
 function writeStarterWorkflow(target, config) {
   if (config.isInMicroserviceProject || !config.cicd) {
@@ -31,6 +36,37 @@ function writeStarterWorkflow(target, config) {
   const deploymentTarget = config.deploymentTarget || "ci-only";
   const releaseTrigger = config.releaseTrigger || "manual";
   const deploymentEnvironments = config.deploymentEnvironments || "single";
+  const pm = config.packageManager || "npm";
+
+  let setupPmSteps = "";
+  let installCmd = "npm install";
+  let checkFormatCmd = "npm run check-format";
+  let lintCmd = "npm run lint";
+  let buildCmd = "npm run build";
+
+  if (pm === "pnpm") {
+    setupPmSteps = `      - name: Setup pnpm\n        uses: pnpm/action-setup@v4\n        with:\n          version: 9\n\n`;
+    installCmd = "pnpm install";
+    checkFormatCmd = "pnpm run check-format";
+    lintCmd = "pnpm run lint";
+    buildCmd = "pnpm run build";
+  } else if (pm === "yarn") {
+    installCmd = "yarn install";
+    checkFormatCmd = "yarn run check-format";
+    lintCmd = "yarn run lint";
+    buildCmd = "yarn run build";
+  } else if (pm === "bun") {
+    setupPmSteps = `      - name: Setup Bun\n        uses: oven-sh/setup-bun@v2\n\n`;
+    installCmd = "bun install";
+    checkFormatCmd = "bun run check-format";
+    lintCmd = "bun run lint";
+    buildCmd = "bun run build";
+  }
+
+  const cacheOption =
+    pm === "pnpm" || pm === "yarn" || pm === "npm"
+      ? `\n          cache: "${pm}"`
+      : "";
 
   const releaseTriggerBlock =
     releaseTrigger === "push-main"
@@ -47,7 +83,7 @@ function writeStarterWorkflow(target, config) {
           deploymentEnvironments === "staging-prod" ? "staging" : "production"
         }\n    steps:\n      - name: Placeholder deployment step\n        run: echo "Wire this job to your platform (Render, Railway, Fly, etc.)"\n`
       : deploymentTarget === "docker"
-      ? `\n  deploy:\n    name: Build and publish Docker image\n    runs-on: ubuntu-latest\n    needs: build\n    environment: ${
+      ? `\n  deploy:\n    name: Deploy to Docker registry\n    runs-on: ubuntu-latest\n    needs: build\n    environment: ${
           deploymentEnvironments === "staging-prod" ? "staging" : "production"
         }\n    steps:\n      - name: Placeholder image publish step\n        run: echo "Wire this job to your registry and image deploy target"\n`
       : deploymentTarget === "kubernetes"
@@ -79,22 +115,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Setup Node.js
+${setupPmSteps}      - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 20.x
+          node-version: 20.x${cacheOption}
 
       - name: Install dependencies
-        run: npm install 
+        run: ${installCmd}
 
       - name: Check code format
-        run: npm run check-format
+        run: ${checkFormatCmd}
 
       - name: Run linter
-        run: npm run lint 
+        run: ${lintCmd}
 
       - name: Run build
-        run: npm run build
+        run: ${buildCmd}
 ${deploymentJob}
 `;
 
@@ -315,6 +351,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Get project configuration from user
 const config = await getProjectConfig();
+const pmResolution = await ensurePackageManager(config.packageManager);
+config.packageManager =
+  pmResolution.preferredPm || config.packageManager || "npm";
+config.installPm = pmResolution.pm || "npm";
+config.skipInstall = pmResolution.skipInstall || false;
+const pm = getPackageManagerCommands(config.installPm);
+const preferredPmCmds = getPackageManagerCommands(config.packageManager);
+
 const {
   sanitizedName,
   target,
@@ -714,6 +758,10 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
     generatePm2Config(target, allServices);
   }
 
+  if (config.packageManager === "pnpm") {
+    generatePnpmWorkspace(target);
+  }
+
   // Create root package.json for microservice monorepo if it doesn't exist
   const rootPackageJsonPath = path.join(target, "package.json");
   if (!fs.existsSync(rootPackageJsonPath)) {
@@ -1077,41 +1125,51 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
   }
 
   // Step 5: Install dependencies for all services
-
-  console.log(pc.cyan("\n📦 Installing dependencies for all services...\n"));
-  let allInstallsSucceeded = true;
-
-  for (const { serviceName, serviceRoot, deps, devDeps } of serviceConfigs) {
+  if (config.skipInstall) {
     console.log(
-      pc.cyan(`\n📦 Installing dependencies for ${serviceName}...\n`)
+      pc.yellow(
+        `\n⏭️  Skipping automatic dependency installation as requested.\n`
+      )
     );
+    config.allInstallsSucceeded = false;
+  } else {
+    console.log(pc.cyan("\n📦 Installing dependencies for all services...\n"));
+    let allInstallsSucceeded = true;
 
-    try {
-      if (deps.length) {
-        execSync(`npm install ${deps.join(" ")}`, {
-          cwd: serviceRoot,
-          stdio: "inherit",
-        });
-      }
-      if (devDeps.length) {
-        execSync(`npm install -D ${devDeps.join(" ")}`, {
-          cwd: serviceRoot,
-          stdio: "inherit",
-        });
-      }
-      execSync("npm install", { cwd: serviceRoot, stdio: "inherit" });
-    } catch (error) {
-      allInstallsSucceeded = false;
-      console.error(
-        pc.red(`\n❌ Failed to install dependencies for ${serviceName}`)
+    for (const { serviceName, serviceRoot, deps, devDeps } of serviceConfigs) {
+      console.log(
+        pc.cyan(`\n📦 Installing dependencies for ${serviceName}...\n`)
       );
-      console.error(pc.dim(`\nYou can install them later by running:`));
-      console.error(pc.cyan(`   cd services/${serviceName} && npm install\n`));
-    }
-  }
 
-  // Store for later use
-  config.allInstallsSucceeded = allInstallsSucceeded;
+      try {
+        if (deps.length) {
+          execSync(pm.add(deps), {
+            cwd: serviceRoot,
+            stdio: "inherit",
+          });
+        }
+        if (devDeps.length) {
+          execSync(pm.addDev(devDeps), {
+            cwd: serviceRoot,
+            stdio: "inherit",
+          });
+        }
+        execSync(pm.install, { cwd: serviceRoot, stdio: "inherit" });
+      } catch (error) {
+        allInstallsSucceeded = false;
+        console.error(
+          pc.red(`\n❌ Failed to install dependencies for ${serviceName}`)
+        );
+        console.error(pc.dim(`\nYou can install them later by running:`));
+        console.error(
+          pc.cyan(`   cd services/${serviceName} && ${pm.install}\n`)
+        );
+      }
+    }
+
+    // Store for later use
+    config.allInstallsSucceeded = allInstallsSucceeded;
+  }
 } else {
   config.monolithSetupResult = await setupService(config, null, target, true);
   config.installSucceeded = config.monolithSetupResult.installSucceeded;
@@ -1148,37 +1206,47 @@ if (!isInMicroserviceProject && config.projectType === "monolith") {
 
 // Install monolith dependencies last, after all files have been generated.
 if (!isInMicroserviceProject && config.projectType === "monolith") {
-  const result = config.monolithSetupResult;
+  if (config.skipInstall) {
+    console.log(
+      pc.yellow(
+        `\n⏭️  Skipping automatic dependency installation as requested.\n`
+      )
+    );
+  } else {
+    const result = config.monolithSetupResult;
 
-  try {
-    if (result.deps && result.deps.length) {
-      execSync(`npm install ${result.deps.join(" ")}`, {
-        cwd: target,
-        stdio: "inherit",
-      });
-    }
-    if (result.devDeps && result.devDeps.length) {
-      execSync(`npm install -D ${result.devDeps.join(" ")}`, {
-        cwd: target,
-        stdio: "inherit",
-      });
-    }
-    execSync("npm install", { cwd: target, stdio: "inherit" });
-  } catch (error) {
-    console.error(pc.red("\n❌ Failed to install monolith dependencies"));
-    console.error(pc.dim(`\nYou can install them later by running:`));
-    console.error(pc.cyan(`   cd ${target} && npm install\n`));
+    try {
+      if (result.deps && result.deps.length) {
+        execSync(pm.add(result.deps), {
+          cwd: target,
+          stdio: "inherit",
+        });
+      }
+      if (result.devDeps && result.devDeps.length) {
+        execSync(pm.addDev(result.devDeps), {
+          cwd: target,
+          stdio: "inherit",
+        });
+      }
+      execSync(pm.install, { cwd: target, stdio: "inherit" });
+      config.installSucceeded = true;
+    } catch (error) {
+      config.installSucceeded = false;
+      console.error(pc.red("\n❌ Failed to install monolith dependencies"));
+      console.error(pc.dim(`\nYou can install them later by running:`));
+      console.error(pc.cyan(`   cd ${target} && ${pm.install}\n`));
 
-    if (
-      error?.code === "ENOSPC" ||
-      /no space left on device/i.test(error?.message || "")
-    ) {
-      console.error(
-        pc.red(
-          "\n🛑 Generation stopped because the disk is full. Free up space and run the generator again.\n"
-        )
-      );
-      process.exit(1);
+      if (
+        error?.code === "ENOSPC" ||
+        /no space left on device/i.test(error?.message || "")
+      ) {
+        console.error(
+          pc.red(
+            "\n🛑 Generation stopped because the disk is full. Free up space and run the generator again.\n"
+          )
+        );
+        process.exit(1);
+      }
     }
   }
 
@@ -1199,48 +1267,50 @@ if (!isInMicroserviceProject) {
 
   // Install husky and other devDeps and setup at root level
   if (config.projectType === "microservice") {
-    console.log("\n📦 Installing dependencies at root level...\n");
-    if (config.allInstallsSucceeded) {
+    if (config.allInstallsSucceeded && !config.skipInstall) {
+      console.log("\n📦 Installing dependencies at root level...\n");
       try {
-        execSync("npm install", { cwd: target, stdio: "inherit" });
+        execSync(pm.install, { cwd: target, stdio: "inherit" });
         console.log("\n🔧 Setting up Husky...\n");
-        execSync("npm run prepare", { cwd: target, stdio: "inherit" });
+        execSync(pm.prepare, { cwd: target, stdio: "inherit" });
       } catch (error) {
         console.log("\n⚠️  Husky setup failed\n");
       }
       // Run format after successful install
       console.log(pc.cyan("\n🎨 Formatting code...\n"));
       try {
-        execSync("npm run format", { cwd: target, stdio: "inherit" });
+        execSync(pm.run("format"), { cwd: target, stdio: "inherit" });
       } catch (formatError) {
         console.warn(
           pc.yellow(
-            "⚠️  Warning: Code formatting failed. You can run it manually later with: npm run format\n"
+            `⚠️  Warning: Code formatting failed. You can run it manually later with: ${pm.run(
+              "format"
+            )}\n`
           )
         );
       }
     } else {
       console.log(
-        "\n⚠️  Husky setup skipped (run 'npm install && npm run prepare' after fixing service dependencies)\n"
+        `\n⚠️  Husky setup skipped (run '${pm.install} && ${pm.prepare}' after fixing service dependencies)\n`
       );
     }
   } else if (config.projectType === "monolith") {
     // Only setup Husky if installation succeeded
-    if (config.installSucceeded) {
+    if (config.installSucceeded && !config.skipInstall) {
       console.log(`\n${pc.cyan("🔧 Setting up Husky...")}\n`);
       try {
-        execSync("npm run prepare", { cwd: target, stdio: "inherit" });
+        execSync(pm.prepare, { cwd: target, stdio: "inherit" });
       } catch (error) {
         console.log(
           `\n${pc.yellow("⚠️  Husky setup failed")} ${pc.dim(
-            "(run 'npm run prepare' manually after fixing dependencies)"
+            `(run '${pm.prepare}' manually after fixing dependencies)`
           )}\n`
         );
       }
     } else {
       console.log(
         `\n${pc.yellow("⚠️  Husky setup skipped")} ${pc.dim(
-          "(run 'npm install && npm run prepare' to set up git hooks)"
+          `(run '${pm.install} && ${pm.prepare}' to set up git hooks)`
         )}\n`
       );
     }
@@ -1279,7 +1349,9 @@ if (isInMicroserviceProject) {
   }
   console.log(`\n${pc.cyan("📦 All services:")} ${allServices.join(", ")}`);
   console.log(`\n${pc.blue("💡 Next steps:")}`);
-  console.log(`   ${pc.dim("1.")} Start services: ${pc.bold("npm run dev")}`);
+  console.log(
+    `   ${pc.dim("1.")} Start services: ${pc.bold(preferredPmCmds.dev)}`
+  );
 } else if (config.projectType === "microservice") {
   console.log(`\n${pc.green("✅ Microservice Backend created successfully!")}`);
   console.log(
@@ -1287,22 +1359,40 @@ if (isInMicroserviceProject) {
   );
   console.log(`\n${pc.blue("💡 Next steps:")}`);
   const isCurrentDir = target === process.cwd();
+  let step = 1;
   if (!isCurrentDir) {
-    console.log(`   ${pc.dim("1.")} cd ${pc.bold(sanitizedName)}`);
-    console.log(`   ${pc.dim("2.")} Start services: ${pc.bold("npm run dev")}`);
-  } else {
-    console.log(`   ${pc.dim("1.")} Start services: ${pc.bold("npm run dev")}`);
+    console.log(`   ${pc.dim(`${step++}.`)} cd ${pc.bold(sanitizedName)}`);
   }
+  if (config.skipInstall) {
+    console.log(
+      `   ${pc.dim(`${step++}.`)} Install dependencies: ${pc.bold(
+        preferredPmCmds.install
+      )}`
+    );
+  }
+  console.log(
+    `   ${pc.dim(`${step++}.`)} Start services: ${pc.bold(
+      preferredPmCmds.dev
+    )}`
+  );
 } else {
   console.log(`\n${pc.green("✅ Monolith Backend created successfully!")}`);
   console.log(`\n${pc.blue("💡 Next steps:")}`);
   const isCurrentDir = target === process.cwd();
+  let step = 1;
   if (!isCurrentDir) {
-    console.log(`   ${pc.dim("1.")} cd ${pc.bold(sanitizedName)}`);
-    console.log(`   ${pc.dim("2.")} npm run dev`);
-  } else {
-    console.log(`   ${pc.dim("1.")} npm run dev`);
+    console.log(`   ${pc.dim(`${step++}.`)} cd ${pc.bold(sanitizedName)}`);
   }
+  if (config.skipInstall) {
+    console.log(
+      `   ${pc.dim(`${step++}.`)} Install dependencies: ${pc.bold(
+        preferredPmCmds.install
+      )}`
+    );
+  }
+  console.log(
+    `   ${pc.dim(`${step++}.`)} Start server: ${pc.bold(preferredPmCmds.dev)}`
+  );
 }
 // Post-processing: ensure shared config does not export/connect to DB when auth is disabled
 try {
