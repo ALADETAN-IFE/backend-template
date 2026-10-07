@@ -6,6 +6,12 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    groups:
+      dev-tooling:
+        patterns:
+          - "eslint*"
+          - "@typescript-eslint/*"
+          - "prettier*"
 
   # Maintain dependencies in the TypeScript base template
   - package-ecosystem: "npm"
@@ -13,6 +19,22 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    ignore:
+      # Keep TypeScript on 5.x until eslint tooling supports next major
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+    groups:
+      typescript-tooling:
+        patterns:
+          - "typescript"
+          - "@typescript-eslint/*"
+          - "@types/*"
+          - "ts-node-dev"
+          - "tsconfig-paths"
+      eslint-prettier:
+        patterns:
+          - "eslint*"
+          - "prettier*"
 
   # Maintain dependencies in the JavaScript base template
   - package-ecosystem: "npm"
@@ -20,6 +42,12 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    groups:
+      dev-tooling:
+        patterns:
+          - "eslint*"
+          - "prettier*"
+          - "nodemon"
 
   # Maintain GitHub Actions workflows
   - package-ecosystem: "github-actions"
