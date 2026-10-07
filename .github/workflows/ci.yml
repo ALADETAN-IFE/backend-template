@@ -7,6 +7,9 @@ on:
     branches: [main, dev]
 
 jobs:
+  # ─────────────────────────────────────────────────────────────
+  # 1. Cross-platform matrix: lint, generate, install, build
+  # ─────────────────────────────────────────────────────────────
   test:
     runs-on: ${{ matrix.os }}
 
@@ -30,6 +33,7 @@ jobs:
       - name: Run linter
         run: npm run lint --if-present
 
+      # ── Monolith (no auth) ────────────────────────────────────
       - name: Test CLI generation (Monolith — no auth)
         shell: bash
         env:
@@ -51,6 +55,7 @@ jobs:
           npm install
           npm run build
 
+      # ── Monolith (auth) ───────────────────────────────────────
       - name: Test CLI generation (Monolith — auth)
         shell: bash
         env:
@@ -72,7 +77,8 @@ jobs:
           npm install
           npm run build
 
-      - name: Test CLI generation (Microservice)
+      # ── Microservice (docker mode) — build check only ─────────
+      - name: Test CLI generation (Microservice — docker)
         shell: bash
         run: |
           node bin/cli.js test-micro micro << EOF
@@ -83,13 +89,121 @@ jobs:
           EOF
 
       - name: Verify microservice project structure
+        shell: bash
         run: |
           test -d test-micro/services/gateway
           test -d test-micro/services/health-service
           test -f test-micro/docker-compose.yml
 
+      - name: Install & build all microservices
+        shell: bash
+        run: |
+          for service in test-micro/services/*/; do
+            echo "▶ Installing deps for $service"
+            npm install --prefix "$service"
+            echo "▶ Building $service"
+            npm run build --prefix "$service" || true
+          done
+
+      # ── Microservice (nodocker/PM2 mode) — build check ────────
+      - name: Test CLI generation (Microservice — nodocker)
+        shell: bash
+        run: |
+          node bin/cli.js test-micro-pm2 micro << EOF
+          nodocker
+          cors
+          helmet
+          bcrypt
+          EOF
+
+      - name: Install & build all PM2 microservices
+        shell: bash
+        run: |
+          npm install --prefix test-micro-pm2 || true
+          for service in test-micro-pm2/services/*/; do
+            echo "▶ Installing deps for $service"
+            npm install --prefix "$service"
+            echo "▶ Building $service"
+            npm run build --prefix "$service" || true
+          done
+
+      # ── Cleanup ───────────────────────────────────────────────
       - name: Cleanup test projects
         shell: bash
         run: |
-          rm -rf test-mono-noauth test-mono-auth test-micro
+          rm -rf test-mono-noauth test-mono-auth test-micro test-micro-pm2
+        if: always()
+
+  # ─────────────────────────────────────────────────────────────
+  # 2. Docker startup test — ubuntu-latest only (Docker available)
+  # ─────────────────────────────────────────────────────────────
+  docker-smoke-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.x
+
+      - name: Install CLI dependencies
+        run: npm ci
+
+      - name: Generate microservice project (docker mode)
+        shell: bash
+        run: |
+          node bin/cli.js test-docker-micro micro << EOF
+          docker
+          cors
+          helmet
+          bcrypt
+          EOF
+
+      - name: Install service dependencies (for Docker build context)
+        shell: bash
+        run: |
+          for service in test-docker-micro/services/*/; do
+            echo "▶ npm install in $service"
+            npm install --prefix "$service"
+          done
+
+      - name: Start services with docker-compose
+        run: |
+          cd test-docker-micro
+          docker compose up -d --build
+        timeout-minutes: 5
+
+      - name: Wait for gateway health endpoint
+        run: |
+          echo "Waiting for gateway to be ready..."
+          for i in $(seq 1 30); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4000/health || echo "000")
+            echo "Attempt $i: HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Gateway is healthy!"
+              break
+            fi
+            if [ "$i" = "30" ]; then
+              echo "❌ Gateway did not become healthy in time"
+              docker compose -f test-docker-micro/docker-compose.yml logs
+              exit 1
+            fi
+            sleep 3
+          done
+
+      - name: Verify gateway health response
+        run: |
+          curl -sf http://localhost:4000/health | grep -q "healthy" && echo "✅ Health check passed" || (echo "❌ Unexpected health response" && exit 1)
+
+      - name: Stop and remove containers
+        run: |
+          cd test-docker-micro
+          docker compose down --volumes --remove-orphans
+        if: always()
+
+      - name: Cleanup test project
+        run: rm -rf test-docker-micro
         if: always()
