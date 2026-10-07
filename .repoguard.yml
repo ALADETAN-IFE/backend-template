@@ -1,0 +1,3 @@
+ignore:
+  paths:
+    - bin/lib/service-setup.js
