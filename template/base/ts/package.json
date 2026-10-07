@@ -33,7 +33,7 @@
     "prettier": "^3.7.4",
     "ts-node-dev": "^2.0.0",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   },
   "_moduleAliases": {
     "@": "dist"
