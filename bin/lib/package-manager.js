@@ -127,7 +127,9 @@ export async function ensurePackageManager(chosenPm = "npm") {
   if (!response.action || response.action === "fallback") {
     console.log(
       pc.cyan(
-        `\n🔄 Proceeding with ${pc.bold("npm")} for dependency installation...\n`
+        `\n🔄 Proceeding with ${pc.bold(
+          "npm"
+        )} for dependency installation...\n`
       )
     );
     return { pm: "npm", preferredPm: chosenPm, skipInstall: false };
