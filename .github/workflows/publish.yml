@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # If a specific tag was provided in workflow_dispatch inputs, fetch that exact tag
           ref: ${{ github.event.inputs.tag || github.ref }}
