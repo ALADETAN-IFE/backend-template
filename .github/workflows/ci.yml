@@ -196,7 +196,9 @@ jobs:
 
       - name: Verify gateway health response
         run: |
-          curl -sf http://localhost:4000/health | grep -q "healthy" && echo "✅ Health check passed" || (echo "❌ Unexpected health response" && exit 1)
+          RESPONSE=$(curl -sf http://localhost:4000/health)
+          echo "Gateway response: $RESPONSE"
+          echo "$RESPONSE" | grep -q '"status":"ok"' && echo "✅ Gateway health check passed" || (echo "❌ Unexpected health response: $RESPONSE" && exit 1)
 
       - name: Stop and remove containers
         run: |

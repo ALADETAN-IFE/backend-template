@@ -3,9 +3,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/server.ts",
-    "start": "node -r module-alias/register dist/server.js",
-    "build": "tsc",
+    "dev": "node init && ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/server.ts",
+    "start": "node init && node -r module-alias/register dist/server.js",
+    "build": "node init && tsc",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "format": "prettier --write \"src/**/*.{ts,json}\"",
     "check-format": "prettier --check \"src/**/*.{ts,json}\"",
