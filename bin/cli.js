@@ -37,6 +37,16 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+    groups:
+      dev-tooling:
+        patterns:
+          - "eslint*"
+          - "@typescript-eslint/*"
+          - "prettier*"
+          - "typescript"
 `;
 
   if (config.projectType === "microservice" && Array.isArray(allServices)) {
@@ -45,6 +55,10 @@ updates:
     directory: "/services/${service}"
     schedule:
       interval: "weekly"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
 `;
     }
   }
