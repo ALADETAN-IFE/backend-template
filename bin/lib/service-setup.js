@@ -5,6 +5,7 @@ import pc from "picocolors";
 import { execSync } from "child_process";
 import { fileURLToPath } from "url";
 import { getPackageManagerCommands } from "./package-manager.js";
+import { resolveDependencyVersions } from "./dependencies.js";
 
 // Helper function to get the correct file extension (.ts or .js)
 function getFileExtension(dir) {
@@ -759,8 +760,7 @@ export const setupService = async (
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
 
   // Prefer the original project name so scoped packages (e.g. @scope/pkg) are preserved.
-  const isDotName =
-    res.name === "." || res.name === "./" || res.name === ".\\";
+  const isDotName = res.name === "." || res.name === "./" || res.name === ".\\";
   const defaultName = isDotName ? res.sanitizedName : res.name;
   const packageName = serviceName || defaultName || res.sanitizedName;
 
@@ -784,6 +784,18 @@ export const setupService = async (
     description: res.description || packageJson.description,
     ...orderedPackageJson,
   };
+
+  // Merge dynamic and feature dependencies directly into package.json
+  finalPackageJson.dependencies = resolveDependencyVersions(
+    deps,
+    finalPackageJson.dependencies || {}
+  );
+  if (devDeps.length || finalPackageJson.devDependencies) {
+    finalPackageJson.devDependencies = resolveDependencyVersions(
+      devDeps,
+      finalPackageJson.devDependencies || {}
+    );
+  }
 
   // Add author if provided
   if (res.author) {
@@ -876,18 +888,6 @@ export const setupService = async (
   const pm = getPackageManagerCommands(res.packageManager || "npm");
 
   try {
-    if (deps.length) {
-      execSync(pm.add(deps), {
-        cwd: serviceRoot,
-        stdio: "inherit",
-      });
-    }
-    if (devDeps.length) {
-      execSync(pm.addDev(devDeps), {
-        cwd: serviceRoot,
-        stdio: "inherit",
-      });
-    }
     execSync(pm.install, { cwd: serviceRoot, stdio: "inherit" });
     installSucceeded = true;
 

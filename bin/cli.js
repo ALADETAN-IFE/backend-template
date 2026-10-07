@@ -20,6 +20,43 @@ import {
   ensurePackageManager,
   getPackageManagerCommands,
 } from "./lib/package-manager.js";
+import { resolveDependencyVersions } from "./lib/dependencies.js";
+
+function writeDependabotConfig(target, config, allServices = []) {
+  if (config.isInMicroserviceProject || !config.cicd) {
+    return;
+  }
+
+  const githubDir = path.join(target, ".github");
+  fs.mkdirSync(githubDir, { recursive: true });
+
+  let dependabotContent = `version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+`;
+
+  if (config.projectType === "microservice" && Array.isArray(allServices)) {
+    for (const service of allServices) {
+      dependabotContent += `  - package-ecosystem: "npm"
+    directory: "/services/${service}"
+    schedule:
+      interval: "weekly"
+`;
+    }
+  }
+
+  dependabotContent += `  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+`;
+
+  fs.writeFileSync(path.join(githubDir, "dependabot.yml"), dependabotContent);
+}
 
 function writeStarterWorkflow(target, config) {
   if (config.isInMicroserviceProject || !config.cicd) {
@@ -793,24 +830,24 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
           'prettier --check "services/**/*.{js,ts,json}" "shared/**/*.{js,ts,json}"',
         prepare: "husky install",
       },
-      devDependencies: {
-        husky: "^9.1.7",
-        prettier: "^3.7.4",
-        "@typescript-eslint/eslint-plugin": "^8.50.1",
-        "@typescript-eslint/parser": "^8.50.1",
-        eslint: "^9.39.2",
-        "eslint-config-prettier": "^10.1.8",
-      },
+      devDependencies: resolveDependencyVersions([
+        "husky",
+        "prettier",
+        "@typescript-eslint/eslint-plugin",
+        "@typescript-eslint/parser",
+        "eslint",
+        "eslint-config-prettier",
+      ]),
     };
 
     // Add runtime dependencies for non-Docker (PM2) mode
     if (mode !== "docker") {
-      rootPackageJson.dependencies = {
-        dotenv: "^17.2.3",
-        pm2: "^6.0.14",
-        "ts-node": "^10.9.2",
-        "tsconfig-paths": "^4.2.0",
-      };
+      rootPackageJson.dependencies = resolveDependencyVersions([
+        "dotenv",
+        "pm2",
+        "ts-node",
+        "tsconfig-paths",
+      ]);
     }
     fs.writeFileSync(
       rootPackageJsonPath,
@@ -888,6 +925,7 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
     writeStarterWorkflow(target, config);
     writePullRequestTemplate(target, config);
     writeContributingGuide(target, config);
+    writeDependabotConfig(target, config, allServices);
 
     // Rename gitignore to .gitignore (npm doesn't publish .gitignore files)
     for (const service of allServices) {
@@ -1142,18 +1180,6 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
       );
 
       try {
-        if (deps.length) {
-          execSync(pm.add(deps), {
-            cwd: serviceRoot,
-            stdio: "inherit",
-          });
-        }
-        if (devDeps.length) {
-          execSync(pm.addDev(devDeps), {
-            cwd: serviceRoot,
-            stdio: "inherit",
-          });
-        }
         execSync(pm.install, { cwd: serviceRoot, stdio: "inherit" });
       } catch (error) {
         allInstallsSucceeded = false;
@@ -1171,8 +1197,16 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
     config.allInstallsSucceeded = allInstallsSucceeded;
   }
 } else {
-  config.monolithSetupResult = await setupService(config, null, target, true);
-  config.installSucceeded = config.monolithSetupResult.installSucceeded;
+  // Generate monolith files first; defer installation to the final step below
+  config.monolithSetupResult = await setupService(
+    config,
+    null,
+    target,
+    true,
+    [],
+    true
+  );
+  config.installSucceeded = false;
 }
 
 // Generate README.md for monolith (microservices already done above)
@@ -1183,6 +1217,7 @@ if (!isInMicroserviceProject && config.projectType === "monolith") {
   writeStarterWorkflow(target, config);
   writePullRequestTemplate(target, config);
   writeContributingGuide(target, config);
+  writeDependabotConfig(target, config);
 
   // Rename gitignore to .gitignore (npm doesn't publish .gitignore files)
   const gitignorePath = path.join(target, "gitignore");
@@ -1213,21 +1248,10 @@ if (!isInMicroserviceProject && config.projectType === "monolith") {
       )
     );
   } else {
-    const result = config.monolithSetupResult;
-
     try {
-      if (result.deps && result.deps.length) {
-        execSync(pm.add(result.deps), {
-          cwd: target,
-          stdio: "inherit",
-        });
-      }
-      if (result.devDeps && result.devDeps.length) {
-        execSync(pm.addDev(result.devDeps), {
-          cwd: target,
-          stdio: "inherit",
-        });
-      }
+      console.log(
+        pc.cyan(`\n📦 Installing dependencies for ${sanitizedName}...\n`)
+      );
       execSync(pm.install, { cwd: target, stdio: "inherit" });
       config.installSucceeded = true;
     } catch (error) {
@@ -1371,9 +1395,7 @@ if (isInMicroserviceProject) {
     );
   }
   console.log(
-    `   ${pc.dim(`${step++}.`)} Start services: ${pc.bold(
-      preferredPmCmds.dev
-    )}`
+    `   ${pc.dim(`${step++}.`)} Start services: ${pc.bold(preferredPmCmds.dev)}`
   );
 } else {
   console.log(`\n${pc.green("✅ Monolith Backend created successfully!")}`);
