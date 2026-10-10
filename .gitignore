@@ -35,6 +35,5 @@ Thumbs.db
 *~
 
 # Temporary files
-PR.md
 *.tmp
 .cache/
