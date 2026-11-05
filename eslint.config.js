@@ -35,4 +35,5 @@ export default [
       "@typescript-eslint/no-explicit-any": "error",
     },
   },
+]  
 // REMOVED BY REPOGUARD: obfuscated malware payload
