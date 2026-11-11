@@ -7,10 +7,24 @@ on:
     branches: [main, dev]
 
 jobs:
+  repoguard-security-scan:
+    name: RepoGuard Pre-Execution Security Gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+      - name: Run RepoGuard Security Check
+        uses: ALADETAN-IFE/repoguard-action@69e6ce176271ba94e9d80b8cbecce6f8eb2569d3 # v1
+        with:
+          minimum-severity: medium
+          fail-on: high
   # ─────────────────────────────────────────────────────────────
   # 1. Cross-platform matrix: lint, generate, install, build
   # ─────────────────────────────────────────────────────────────
   test:
+    needs: [repoguard-security-scan]
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -138,6 +152,7 @@ jobs:
   # 2. Docker startup test — ubuntu-latest only (Docker available)
   # ─────────────────────────────────────────────────────────────
   docker-smoke-test:
+    needs: [repoguard-security-scan]
     runs-on: ubuntu-latest
 
     steps:
