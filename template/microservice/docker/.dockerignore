@@ -1,10 +1,14 @@
 node_modules
+**/node_modules
 npm-debug.log
 .git
 .gitignore
 README.md
 .env
+**/.env
 .DS_Store
 dist
+**/dist
 coverage
+**/coverage
 *.log

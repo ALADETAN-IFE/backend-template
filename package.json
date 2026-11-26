@@ -15,7 +15,8 @@
   "scripts": {
     "lint": "eslint .",
     "format": "prettier --write .",
-    "postinstall": "node scripts/warn-install.js"
+    "postinstall": "node scripts/warn-install.js",
+    "check:warn-install": "node scripts/check-warn-install.js"
   },
   "repository": {
     "type": "git",

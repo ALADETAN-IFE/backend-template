@@ -44,6 +44,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify local-install warning output
+        run: npm run check:warn-install
+
       - name: Run linter
         run: npm run lint --if-present
 

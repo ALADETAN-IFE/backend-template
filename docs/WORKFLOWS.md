@@ -28,7 +28,7 @@ What each choice produces
 - Microservice workspace
 
   - Creates a monorepo-like structure with a `shared/` folder (shared config & utils) and `services/` for individual services (gateway, health, and optionally auth).
-  - If Docker mode is chosen, a `docker-compose.yml` and per-service Dockerfiles are included. If PM2 mode is chosen, PM2 config is included instead.
+  - If Docker mode is chosen, a `docker-compose.yml` and per-service Dockerfiles are included. Compose builds from the workspace root so each image includes `shared/`, passes the selected package manager to the Docker build, and selects the Dockerfile's `dev` stage for bind-mounted development. If PM2 mode is chosen, PM2 config is included instead.
   - A root `.env` and `.env.example` with one port per service is generated.
 
 - Authentication (yes/no)
