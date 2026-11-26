@@ -1,5 +1,11 @@
 services:
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+      args:
+        SERVICE_NAME: api
+        PACKAGE_MANAGER: npm
+      target: dev
     ports:
       - "4000:4000"

@@ -802,7 +802,12 @@ if (isInMicroserviceProject || config.projectType === "microservice") {
 
   // Step 2: Generate docker-compose/pm2 config and root files
   if (mode === "docker") {
-    generateDockerCompose(target, allServices, config.sanitizedName);
+    generateDockerCompose(
+      target,
+      allServices,
+      config.sanitizedName,
+      config.packageManager
+    );
     copyDockerfile(target, servicesToSetup);
     copyDockerignore(target, servicesToSetup);
   } else {

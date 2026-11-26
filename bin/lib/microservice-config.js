@@ -4,7 +4,12 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export const generateDockerCompose = (target, allServices, projectname) => {
+export const generateDockerCompose = (
+  target,
+  allServices,
+  projectname,
+  packageManager = "npm"
+) => {
   const dockerCompose = {
     services: {},
   };
@@ -36,8 +41,13 @@ export const generateDockerCompose = (target, allServices, projectname) => {
 
     dockerCompose.services[serviceName] = {
       build: {
-        context: `./services/${serviceName}`,
-        dockerfile: "Dockerfile",
+        context: ".",
+        dockerfile: `services/${serviceName}/Dockerfile`,
+        args: {
+          SERVICE_NAME: serviceName,
+          PACKAGE_MANAGER: packageManager,
+        },
+        target: "dev",
       },
       image: `${serviceName}:latest`,
       container_name: projectname + "_" + serviceName,
@@ -61,6 +71,10 @@ export const generateDockerCompose = (target, allServices, projectname) => {
             `    build:\n` +
             `      context: ${config.build.context}\n` +
             `      dockerfile: ${config.build.dockerfile}\n` +
+            `      args:\n` +
+            `        SERVICE_NAME: ${config.build.args.SERVICE_NAME}\n` +
+            `        PACKAGE_MANAGER: ${config.build.args.PACKAGE_MANAGER}\n` +
+            `      target: ${config.build.target}\n` +
             `    image: ${config.image}\n` +
             `    container_name: ${config.container_name}\n` +
             `    ports:\n      - "${config.ports[0]}"\n` +
@@ -151,6 +165,11 @@ export const copyDockerignore = (target, servicesToCreate) => {
     if (!fs.existsSync(serviceDockerignore)) {
       fs.copyFileSync(dockerignorePath, serviceDockerignore);
     }
+  }
+
+  const projectDockerignore = path.join(target, ".dockerignore");
+  if (!fs.existsSync(projectDockerignore)) {
+    fs.copyFileSync(dockerignorePath, projectDockerignore);
   }
 };
 
