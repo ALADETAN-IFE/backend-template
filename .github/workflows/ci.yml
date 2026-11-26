@@ -16,7 +16,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
       - name: Run RepoGuard Security Check
-        uses: ALADETAN-IFE/repoguard-action@69e6ce176271ba94e9d80b8cbecce6f8eb2569d3 # v1
+        uses: ALADETAN-IFE/repoguard-action@ace200635ada2d8db1bad375628dca051cad7cd1 # v1
         with:
           minimum-severity: medium
           fail-on: high

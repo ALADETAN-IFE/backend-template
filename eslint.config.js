@@ -1,8 +1,5 @@
 import tsParser from "@typescript-eslint/parser";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
-// REMOVED BY REPOGUARD: createRequire import for malware
-
-// REMOVED BY REPOGUARD: require definition for malware
 
 export default [
   {
@@ -36,4 +33,3 @@ export default [
     },
   },
 ];
-// REMOVED BY REPOGUARD: obfuscated malware payload
